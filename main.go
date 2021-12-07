@@ -1,19 +1,11 @@
 package main
 
 import (
-	rstparser "checker/rstparser"
-	"time"
+	"checker/parsers"
+	"fmt"
 )
 
 func main() {
-	sayHi()
-	time.Sleep(time.Second)
-}
-
-func sayHi() {
-	go func() {
-		for i := 0; i < 10; i++ {
-			rstparser.Parse()
-		}
-	}()
+	refMap := parsers.Intersphinx("https://docs.mongodb.com/drivers/go/current/objects.inv")
+	fmt.Println(refMap)
 }

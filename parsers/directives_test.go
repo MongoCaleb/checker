@@ -1,66 +1,65 @@
-package rstparser
+package parsers
 
 import (
+	"checker/types"
 	"testing"
 )
 
-type roleTestCase struct {
-	input    string
-	expected []RstRole
-}
-
 type constantTestCase struct {
 	input    string
-	expected []RstConstant
+	expected []types.RstConstant
 }
 
-//input:    "here is a :ref:`fantastic` here is another :ref:`2 <mediocre-fantastic>` here is a :ref:`\n<not_great-fantastic>",
-func TestRefParser(t *testing.T) {
+type roleTestCase struct {
+	input    string
+	expected []types.RstRole
+}
 
-	testCases := []roleTestCase{{
+func TestConstantParser(t *testing.T) {
+
+	testCases := []constantTestCase{{
 		input:    "",
-		expected: []RstRole{},
+		expected: []types.RstConstant{},
 	}, {
 		input:    ".. _:",
-		expected: []RstRole{},
+		expected: []types.RstConstant{},
 	}, {
 		input:    ".. _: foo",
-		expected: []RstRole{},
+		expected: []types.RstConstant{},
 	}, {
 		input:    "This is a `constant link that should fail <{+api+}/flibbertypoo>`__",
-		expected: []RstRole{},
+		expected: []types.RstConstant{{Target: "/flibbertypoo", Name: "api"}},
 	}, {
 		input:    "This is a `constant link that should succeed <{+api+}/classes/AggregationCursor.html>`__",
-		expected: []RstRole{},
+		expected: []types.RstConstant{{Target: "/classes/AggregationCursor.html", Name: "api"}},
 	}, {
 		input:    "here is a :ref:`fantastic`",
-		expected: []RstRole{{Target: "fantastic", RoleType: "ref", Name: "ref"}},
+		expected: []types.RstConstant{},
 	}, {
 		input:    "here is a :ref:`fantastic` here is another :ref:`2 <mediocre-fantastic>` here is a :ref:`\n<not_great-fantastic>`",
-		expected: []RstRole{{Target: "fantastic", RoleType: "ref", Name: "ref"}, {Target: "mediocre-fantastic", RoleType: "ref", Name: "ref"}, {Target: "not_great-fantastic", RoleType: "ref", Name: "ref"}},
+		expected: []types.RstConstant{},
 	}, {
 		input:    ":node-api:`foo </AggregationCursor.html>`",
-		expected: []RstRole{{Target: "/AggregationCursor.html", RoleType: "role", Name: "node-api"}},
+		expected: []types.RstConstant{},
 	}, {
 		input:    ":node-api:`foo <AggregationCursorz.html>`",
-		expected: []RstRole{{Target: "AggregationCursorz.html", RoleType: "role", Name: "node-api"}},
+		expected: []types.RstConstant{},
 	}, {
 		input:    ":node-api:`foo <AggregationCursor.html>`",
-		expected: []RstRole{{Target: "AggregationCursor.html", RoleType: "role", Name: "node-api"}},
+		expected: []types.RstConstant{},
 	}, {
 		input:    "This is a :ref:`valid atlas ref <connect-to-your-cluster>`",
-		expected: []RstRole{{Target: "connect-to-your-cluster", RoleType: "ref", Name: "ref"}},
+		expected: []types.RstConstant{},
 	}, {
 		input:    "This is a :ref:`valid server ref <replica-set-read-preference-behavior>`",
-		expected: []RstRole{{Target: "replica-set-read-preference-behavior", RoleType: "ref", Name: "ref"}},
+		expected: []types.RstConstant{},
 	}, {
 		input:    "This is an :ref:`nvalid ref <invalid_ref_sucka-fish>`",
-		expected: []RstRole{{Target: "invalid_ref_sucka-fish", RoleType: "ref", Name: "ref"}},
+		expected: []types.RstConstant{},
 	},
 	}
-
 	for _, test := range testCases {
-		got := roleParse([]byte(test.input))
+		got := ParseForConstants([]byte(test.input))
 		for i, find := range got {
 			if len(got) != len(test.expected) {
 				t.Errorf("expected length %d, got %d with %q", len(test.expected), len(got), find)
@@ -72,51 +71,52 @@ func TestRefParser(t *testing.T) {
 	}
 }
 
-func TestConstantParser(t *testing.T) {
+func TestRefParser(t *testing.T) {
 
-	testCases := []constantTestCase{{
+	testCases := []roleTestCase{{
 		input:    "",
-		expected: []RstConstant{},
+		expected: []types.RstRole{},
 	}, {
 		input:    ".. _:",
-		expected: []RstConstant{},
+		expected: []types.RstRole{},
 	}, {
 		input:    ".. _: foo",
-		expected: []RstConstant{},
+		expected: []types.RstRole{},
 	}, {
 		input:    "This is a `constant link that should fail <{+api+}/flibbertypoo>`__",
-		expected: []RstConstant{{Target: "/flibbertypoo", Name: "api"}},
+		expected: []types.RstRole{},
 	}, {
 		input:    "This is a `constant link that should succeed <{+api+}/classes/AggregationCursor.html>`__",
-		expected: []RstConstant{{Target: "/classes/AggregationCursor.html", Name: "api"}},
+		expected: []types.RstRole{},
 	}, {
 		input:    "here is a :ref:`fantastic`",
-		expected: []RstConstant{},
+		expected: []types.RstRole{{Target: "fantastic", RoleType: "ref", Name: "ref"}},
 	}, {
 		input:    "here is a :ref:`fantastic` here is another :ref:`2 <mediocre-fantastic>` here is a :ref:`\n<not_great-fantastic>`",
-		expected: []RstConstant{},
+		expected: []types.RstRole{{Target: "fantastic", RoleType: "ref", Name: "ref"}, {Target: "mediocre-fantastic", RoleType: "ref", Name: "ref"}, {Target: "not_great-fantastic", RoleType: "ref", Name: "ref"}},
 	}, {
 		input:    ":node-api:`foo </AggregationCursor.html>`",
-		expected: []RstConstant{},
+		expected: []types.RstRole{{Target: "/AggregationCursor.html", RoleType: "role", Name: "node-api"}},
 	}, {
 		input:    ":node-api:`foo <AggregationCursorz.html>`",
-		expected: []RstConstant{},
+		expected: []types.RstRole{{Target: "AggregationCursorz.html", RoleType: "role", Name: "node-api"}},
 	}, {
 		input:    ":node-api:`foo <AggregationCursor.html>`",
-		expected: []RstConstant{},
+		expected: []types.RstRole{{Target: "AggregationCursor.html", RoleType: "role", Name: "node-api"}},
 	}, {
 		input:    "This is a :ref:`valid atlas ref <connect-to-your-cluster>`",
-		expected: []RstConstant{},
+		expected: []types.RstRole{{Target: "connect-to-your-cluster", RoleType: "ref", Name: "ref"}},
 	}, {
 		input:    "This is a :ref:`valid server ref <replica-set-read-preference-behavior>`",
-		expected: []RstConstant{},
+		expected: []types.RstRole{{Target: "replica-set-read-preference-behavior", RoleType: "ref", Name: "ref"}},
 	}, {
 		input:    "This is an :ref:`nvalid ref <invalid_ref_sucka-fish>`",
-		expected: []RstConstant{},
+		expected: []types.RstRole{{Target: "invalid_ref_sucka-fish", RoleType: "ref", Name: "ref"}},
 	},
 	}
+
 	for _, test := range testCases {
-		got := constantParse([]byte(test.input))
+		got := ParseForRoles([]byte(test.input))
 		for i, find := range got {
 			if len(got) != len(test.expected) {
 				t.Errorf("expected length %d, got %d with %q", len(test.expected), len(got), find)
