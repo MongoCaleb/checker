@@ -8,7 +8,7 @@ import (
 
 func ParseForRoles(input []byte) []types.RstRole {
 	matches := make([]types.RstRole, 0)
-	re := regexp.MustCompile(`:([\w\s\-\.\d_=+!@#$%^&*(\)]*):\x60(?P<one>[\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)<?(?P<two>[\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)>?`)
+	re := regexp.MustCompile(`:([\w\s\-\.\d_=+!@#$%^&*(\)]*):\x60([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)<?([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)>?`)
 	allIndexes := re.FindAllSubmatchIndex([]byte(input), -1)
 	for _, loc := range allIndexes {
 		extract := input[loc[0]:loc[1]]

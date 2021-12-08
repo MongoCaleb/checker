@@ -2,6 +2,7 @@ package parsers
 
 import (
 	"bytes"
+	"checker/types"
 	"compress/zlib"
 	"context"
 	"io"
@@ -25,7 +26,7 @@ func init() {
 	Client = &http.Client{}
 }
 
-func Intersphinx(url string) map[string]string {
+func Intersphinx(url string) types.RoleMap {
 
 	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
 	defer cancel()
@@ -80,7 +81,7 @@ func Intersphinx(url string) map[string]string {
 			continue
 		}
 		lineSplit := strings.Split(line, " ")
-		refMap[lineSplit[0]] = lineSplit[3]
+		refMap[lineSplit[0]] = url[:len(url)-len("objects.inv")] + lineSplit[3]
 	}
 
 	return refMap

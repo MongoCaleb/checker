@@ -2,6 +2,7 @@ package parsers
 
 import (
 	"bytes"
+	"checker/types"
 	"compress/zlib"
 	"io/ioutil"
 	"net/http"
@@ -152,10 +153,22 @@ usage-examples std:doc -1 usage-examples/ Usage Examples`)
 			}, nil
 		},
 	}
-	resp := Intersphinx("test")
+	resp := Intersphinx("https://docs.mongodb.com/drivers/go/current/objects.inv")
 
 	if len(resp) != 4 {
 		t.Errorf("Expected 4 entries, got %v", len(resp))
+	}
+
+	expected := types.RoleMap{
+		"whats-new":      "https://docs.mongodb.com/drivers/go/current/whats-new/",
+		"compatibility":  "https://docs.mongodb.com/drivers/go/current/compatibility/",
+		"fundamentals":   "https://docs.mongodb.com/drivers/go/current/fundamentals/",
+		"usage-examples": "https://docs.mongodb.com/drivers/go/current/usage-examples/"}
+
+	for k, v := range resp {
+		if v != expected[k] {
+			t.Errorf("Expected %v, got %v", expected[k], v)
+		}
 	}
 
 }
