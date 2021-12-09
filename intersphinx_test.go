@@ -1,8 +1,7 @@
-package sources
+package main
 
 import (
 	"bytes"
-	"checker/types"
 	"compress/zlib"
 	"io/ioutil"
 	"net/http"
@@ -147,7 +146,7 @@ usage-examples std:doc -1 usage-examples/ Usage Examples`)
 		t.Errorf("Expected 4 entries, got %v", len(resp))
 	}
 
-	expected := types.RefMap{
+	expected := RefMap{
 		"whats-new":      "https://docs.mongodb.com/drivers/go/current/whats-new/",
 		"compatibility":  "https://docs.mongodb.com/drivers/go/current/compatibility/",
 		"fundamentals":   "https://docs.mongodb.com/drivers/go/current/fundamentals/",

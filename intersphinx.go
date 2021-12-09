@@ -1,8 +1,7 @@
-package sources
+package main
 
 import (
 	"bytes"
-	"checker/types"
 	"compress/zlib"
 	"context"
 	"io"
@@ -14,7 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func Intersphinx(url string) types.RefMap {
+func Intersphinx(url string) RefMap {
 
 	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
 	defer cancel()
