@@ -1,4 +1,4 @@
-package types
+package sources
 
 import (
 	"io/ioutil"
@@ -39,16 +39,6 @@ type = {link = "https://en.wikipedia.org/wiki/%s"}
 `
 )
 
-type MockDoType func(req *http.Request) (*http.Response, error)
-
-type MockClient struct {
-	DoFunc MockDoType
-}
-
-func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
-	return m.DoFunc(req)
-}
-
 func TestRoleMap(t *testing.T) {
 
 	r := ioutil.NopCloser(strings.NewReader(roleMapInput))
@@ -62,7 +52,7 @@ func TestRoleMap(t *testing.T) {
 		},
 	}
 
-	roleMap := NewRoleMap()
+	roleMap := NewRoleMap("test")
 
 	if len(roleMap.Roles) != 2 {
 		t.Errorf("Expected 2 roles, got %d", len(roleMap.Roles))

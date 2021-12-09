@@ -1,11 +1,11 @@
 package main
 
 import (
-	"checker/types"
+	"checker/sources"
 	"fmt"
 )
 
 func main() {
-	roleMap := types.NewRoleMap()
+	roleMap := sources.NewRoleMap(sources.GetLatestSnootyParserTag())
 	fmt.Println(roleMap)
 }

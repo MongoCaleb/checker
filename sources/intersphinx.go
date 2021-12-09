@@ -1,4 +1,4 @@
-package parsers
+package sources
 
 import (
 	"bytes"
@@ -13,18 +13,6 @@ import (
 
 	log "github.com/sirupsen/logrus"
 )
-
-type HTTPClient interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
-var (
-	Client HTTPClient
-)
-
-func init() {
-	Client = &http.Client{}
-}
 
 func Intersphinx(url string) types.RefMap {
 

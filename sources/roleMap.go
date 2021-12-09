@@ -1,4 +1,4 @@
-package types
+package sources
 
 import (
 	"context"
@@ -10,10 +10,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const (
-	rstSpec = "https://raw.githubusercontent.com/mongodb/snooty-parser/master/snooty/rstspec.toml"
-)
-
 type RawMap struct {
 	Roles map[string]interface{} `toml:"role"`
 }
@@ -23,29 +19,23 @@ type RoleMap struct {
 	Roles map[string]string
 }
 
-type HTTPClient interface {
-	Do(req *http.Request) (*http.Response, error)
-}
-
-var (
-	Client HTTPClient
-)
-
 func init() {
 	Client = &http.Client{}
 }
 
-func NewRoleMap() RoleMap {
+func NewRoleMap(rstSpecURL string) RoleMap {
 
 	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
 	defer cancel()
-	req, err := http.NewRequestWithContext(ctx, "GET", rstSpec, nil)
+
+	// get the release version of rstspec.toml
+	req, err := http.NewRequestWithContext(ctx, "GET", rstSpecURL, nil)
 	if err != nil {
-		log.Errorf("Error creating request to url %s: %v", rstSpec, err)
+		log.Errorf("Error creating request to url %s: %v", rstSpecURL, err)
 	}
 	resp, err := Client.Do(req)
 	if err != nil {
-		log.Errorf("Error getting response from url %s: %v", rstSpec, err)
+		log.Errorf("Error getting response from url %s: %v", rstSpecURL, err)
 	}
 	defer resp.Body.Close()
 
@@ -53,11 +43,15 @@ func NewRoleMap() RoleMap {
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
+
+	// populate a raw role map that is map[string]interface{}
 	var rawmap RawMap
 	_, err = toml.Decode(string(buff), &rawmap)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}
+
+	// filter out roles that aren't links, and convert to a RoleMap
 	for k, v := range rawmap.Roles {
 		switch (v.(map[string]interface{})["type"]).(type) {
 		case map[string]interface{}:
@@ -66,7 +60,6 @@ func NewRoleMap() RoleMap {
 			delete(rawmap.Roles, k)
 		}
 	}
-
 	for k, v := range rawmap.Roles {
 		urlObj := v.(map[string]interface{})["type"]
 		target := urlObj.(map[string]interface{})["link"]

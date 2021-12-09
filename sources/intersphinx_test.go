@@ -1,4 +1,4 @@
-package parsers
+package sources
 
 import (
 	"bytes"
@@ -11,18 +11,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 )
-
-// "https://docs.mongodb.com/drivers/go/current/objects.inv"
-
-type MockDoType func(req *http.Request) (*http.Response, error)
-
-type MockClient struct {
-	DoFunc MockDoType
-}
-
-func (m *MockClient) Do(req *http.Request) (*http.Response, error) {
-	return m.DoFunc(req)
-}
 
 func TestNoContents(t *testing.T) {
 
