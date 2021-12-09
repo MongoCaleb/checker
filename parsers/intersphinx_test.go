@@ -159,7 +159,7 @@ usage-examples std:doc -1 usage-examples/ Usage Examples`)
 		t.Errorf("Expected 4 entries, got %v", len(resp))
 	}
 
-	expected := types.RoleMap{
+	expected := types.RefMap{
 		"whats-new":      "https://docs.mongodb.com/drivers/go/current/whats-new/",
 		"compatibility":  "https://docs.mongodb.com/drivers/go/current/compatibility/",
 		"fundamentals":   "https://docs.mongodb.com/drivers/go/current/fundamentals/",

@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-const input = `
+const tomlConfigInput = `
 name = "this is a test"
 title = "TEST"
 toc_landing_pages = [
@@ -29,7 +29,7 @@ baz = "baz+{+foo+}"
 `
 
 func TestSnootyToml(t *testing.T) {
-	cfg, err := NewTomlConfig(input)
+	cfg, err := NewTomlConfig(tomlConfigInput)
 	if err != nil {
 		t.Errorf("error parsing toml: %v", err)
 	}
@@ -47,7 +47,7 @@ func TestSnootyToml(t *testing.T) {
 }
 
 func TestConstantResolution(t *testing.T) {
-	cfg, err := NewTomlConfig(input)
+	cfg, err := NewTomlConfig(tomlConfigInput)
 	if err != nil {
 		t.Errorf("error parsing toml: %v", err)
 	}

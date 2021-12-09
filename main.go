@@ -1,11 +1,11 @@
 package main
 
 import (
-	"checker/parsers"
+	"checker/types"
 	"fmt"
 )
 
 func main() {
-	refMap := parsers.Intersphinx("https://docs.mongodb.com/drivers/go/current/objects.inv")
-	fmt.Println(refMap)
+	roleMap := types.NewRoleMap()
+	fmt.Println(roleMap)
 }

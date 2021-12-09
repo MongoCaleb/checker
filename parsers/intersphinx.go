@@ -26,7 +26,7 @@ func init() {
 	Client = &http.Client{}
 }
 
-func Intersphinx(url string) types.RoleMap {
+func Intersphinx(url string) types.RefMap {
 
 	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
 	defer cancel()
