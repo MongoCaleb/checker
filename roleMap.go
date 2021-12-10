@@ -15,9 +15,7 @@ type RawMap struct {
 }
 
 // RoleMap contains roles from rstSpec.toml
-type RoleMap struct {
-	Roles map[string]string
-}
+type RoleMap map[string]string
 
 func init() {
 	Client = &http.Client{}
@@ -65,12 +63,16 @@ func NewRoleMap(rstSpecURL string) RoleMap {
 		target := urlObj.(map[string]interface{})["link"]
 		rawmap.Roles[k] = target
 	}
-	var roleMap RoleMap
-	roleMap.Roles = make(map[string]string, len(rawmap.Roles))
+	roleMap := make(map[string]string, len(rawmap.Roles))
 	for k, v := range rawmap.Roles {
 		if v != nil {
-			roleMap.Roles[k] = v.(string)
+			roleMap[k] = v.(string)
 		}
 	}
 	return roleMap
+}
+
+func (r *RoleMap) Get(key string) (string, bool) {
+	val, ok := (*r)[key]
+	return val, ok
 }
