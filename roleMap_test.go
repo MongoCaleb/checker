@@ -54,14 +54,14 @@ func TestRoleMap(t *testing.T) {
 
 	roleMap := NewRoleMap("test")
 
-	if len(roleMap.Roles) != 2 {
-		t.Errorf("Expected 2 roles, got %d", len(roleMap.Roles))
+	if len(roleMap) != 2 {
+		t.Errorf("Expected 2 roles, got %d", len(roleMap))
 	}
 
 	expected := map[string]string{"rfc": "https://tools.ietf.org/html/%s", "wikipedia": "https://en.wikipedia.org/wiki/%s"}
 	for k, v := range expected {
-		if roleMap.Roles[k] != v {
-			t.Errorf("Expected %s to be %s, got %s", k, v, roleMap.Roles[k])
+		if roleMap[k] != v {
+			t.Errorf("Expected %s to be %s, got %s", k, v, roleMap[k])
 		}
 	}
 }

@@ -23,3 +23,11 @@ func ParseForConstants(input string) []RstConstant {
 	}
 	return constants
 }
+
+func (r *RstConstant) ToHTTPLink(cfg *TomlConfig) HTTPLink {
+	if base, ok := cfg.Constants[r.Name]; !ok {
+		return HTTPLink("an.invalid.constant." + r.Name)
+	} else {
+		return HTTPLink(base + r.Target)
+	}
+}

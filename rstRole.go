@@ -3,6 +3,8 @@ package main
 import (
 	"regexp"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type RstRole struct {
@@ -37,7 +39,23 @@ func ParseForRoles(input string) []RstRole {
 	return roles
 }
 
-func (r *RstRole) GetTarget(refmap *RefMap, rolemap *RoleMap) HTTPLink {
-
-	return ""
+func (r *RstRole) ToHTTPLink(refmap *RefMap, rolemap *RoleMap) HTTPLink {
+	switch r.RoleType {
+	case "ref":
+		if ref, ok := refmap.Get(r.Name); !ok {
+			log.Errorf("Could not find ref %s", r.Name)
+			return HTTPLink("an.invalid.ref." + r.Name)
+		} else {
+			return HTTPLink(ref)
+		}
+	case "role":
+		if role, ok := rolemap.Get(r.Name); !ok {
+			log.Errorf("Could not find role %s", r.Name)
+			return HTTPLink("an.invalid.role." + r.Name)
+		} else {
+			return HTTPLink(role)
+		}
+	default:
+		return HTTPLink("an.invalid.something." + r.Name)
+	}
 }
