@@ -1,6 +1,10 @@
 package sources
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 type refTest struct {
 	input    string
@@ -17,33 +21,30 @@ func TestFindLocalRefs(t *testing.T) {
 	}, {
 		input: ".. _foo:",
 		expected: map[string]Ref{
-			"foo": Ref{Target: "foo", Type: "local"},
+			"foo": {Target: "foo", Type: "local"},
 		},
 	}, {
 		input: ".. _foo:\n.. _bar:",
 		expected: map[string]Ref{
-			"foo": Ref{Target: "foo", Type: "local"},
-			"bar": Ref{Target: "bar", Type: "local"},
+			"foo": {Target: "foo", Type: "local"},
+			"bar": {Target: "bar", Type: "local"},
 		},
 	}, {
 		input: ".. _foo:\n.. _bar:\n\n\n\n\n\n.. _baz:",
 		expected: map[string]Ref{
-			"foo": Ref{Target: "foo", Type: "local"},
-			"bar": Ref{Target: "bar", Type: "local"},
-			"baz": Ref{Target: "baz", Type: "local"},
+			"foo": {Target: "foo", Type: "local"},
+			"bar": {Target: "bar", Type: "local"},
+			"baz": {Target: "baz", Type: "local"},
 		},
 	}}
 
 	for _, c := range cases {
 		actual := FindLocalRefs(c.input)
-		if len(actual) != len(c.expected) {
-			t.Errorf("FindLocalRefs(%q) == %q, expected %q", c.input, actual, c.expected)
-		}
+		assert.Equal(t, len(c.expected), len(actual), "FindLocalRefs(%q) should return %d refs, got %d", c.input, len(c.expected), len(actual))
 
 		for i, ref := range actual {
-			if ref.Target != c.expected[i].Target || ref.Type != c.expected[i].Type {
-				t.Errorf("FindLocalRefs(%q) == %q, expected %q", c.input, actual, c.expected)
-			}
+			assert.Equal(t, c.expected[i].Target, ref.Target, "FindLocalRefs(%q) should return ref %d as %q, got %q", c.input, i, c.expected[ref.Target], ref)
+			assert.Equal(t, c.expected[i].Type, ref.Type, "FindLocalRefs(%q) should return ref %d as %q, got %q", c.input, i, c.expected[ref.Target], ref)
 		}
 	}
 
