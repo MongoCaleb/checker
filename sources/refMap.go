@@ -1,4 +1,4 @@
-package main
+package sources
 
 type RefMap map[string]string
 
