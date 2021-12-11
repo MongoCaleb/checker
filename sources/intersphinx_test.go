@@ -147,10 +147,11 @@ usage-examples std:doc -1 usage-examples/ Usage Examples`)
 	}
 
 	expected := RefMap{
-		"whats-new":      "https://docs.mongodb.com/drivers/go/current/whats-new/",
-		"compatibility":  "https://docs.mongodb.com/drivers/go/current/compatibility/",
-		"fundamentals":   "https://docs.mongodb.com/drivers/go/current/fundamentals/",
-		"usage-examples": "https://docs.mongodb.com/drivers/go/current/usage-examples/"}
+		"whats-new":      Ref{Target: "https://docs.mongodb.com/drivers/go/current/whats-new/", Type: "intersphinx"},
+		"compatibility":  Ref{Target: "https://docs.mongodb.com/drivers/go/current/compatibility/", Type: "intersphinx"},
+		"fundamentals":   Ref{Target: "https://docs.mongodb.com/drivers/go/current/fundamentals/", Type: "intersphinx"},
+		"usage-examples": Ref{Target: "https://docs.mongodb.com/drivers/go/current/usage-examples/", Type: "intersphinx"},
+	}
 
 	for k, v := range resp {
 		if v != expected[k] {

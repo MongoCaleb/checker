@@ -1,8 +1,13 @@
 package sources
 
-type RefMap map[string]string
+type RefMap map[string]Ref
 
-func (r *RefMap) Get(key string) (string, bool) {
+type Ref struct {
+	Target string
+	Type   string
+}
+
+func (r *RefMap) Get(key string) (Ref, bool) {
 	val, ok := (*r)[key]
 	return val, ok
 }

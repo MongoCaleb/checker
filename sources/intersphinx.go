@@ -61,14 +61,14 @@ func Intersphinx(url string) RefMap {
 		return nil
 	}
 
-	refMap := make(map[string]string)
+	refMap := make(RefMap)
 
 	for _, line := range strings.Split(string(parsed), "\n") {
 		if len(line) == 0 {
 			continue
 		}
 		lineSplit := strings.Split(line, " ")
-		refMap[lineSplit[0]] = url[:len(url)-len("objects.inv")] + lineSplit[3]
+		refMap[lineSplit[0]] = Ref{Target: url[:len(url)-len("objects.inv")] + lineSplit[3], Type: "intersphinx"}
 	}
 
 	return refMap
