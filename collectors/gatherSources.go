@@ -2,7 +2,6 @@ package collectors
 
 import (
 	"checker/rstparsers"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -24,38 +23,54 @@ func init() {
 	FSUtil = &iowrap.Afero{Fs: FS}
 }
 
-func snootyTomlExists() bool {
+func exists(path string) bool {
 	_, b, _, ok := runtime.Caller(0)
 	if !ok {
 		log.Fatal("Could not get caller")
 	}
 	basepath := filepath.Dir(b)
-
-	_, err := FS.Open(filepath.Join(basepath, "snooty.toml"))
-	if errors.Is(err, os.ErrNotExist) {
-		log.Error(errors.New("snooty.toml does not exist"))
+	if _, err := FS.Stat(filepath.Join(basepath, path)); os.IsNotExist(err) {
+		log.Errorf("%s does not exist", path)
 		return false
 	}
 	return true
 }
 
-func main() {
-	var files []string
+func snootyTomlExists() bool {
+	return exists("snooty.toml")
+}
 
-	root := "source"
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("failed to get working directory: %v", err)
+func sourceDirectoryExists() bool {
+
+	return exists("source")
+}
+
+func gatherFiles() []string {
+	if !snootyTomlExists() || !sourceDirectoryExists() {
+		log.Panic("snooty.toml or source directory does not exist")
 	}
-	err = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	_, b, _, ok := runtime.Caller(0)
+	if !ok {
+		log.Fatal("Could not get caller")
+	}
+	basepath := filepath.Dir(b)
+	files := make([]string, 0)
+
+	err := FSUtil.Walk(basepath, func(path string, info os.FileInfo, err error) error {
+		log.Info(path)
 		if filepath.Ext(path) == ".rst" || filepath.Ext(path) == ".txt" {
-			files = append(files, filepath.Join(cwd, path))
+			files = append(files, path)
 		}
 		return nil
 	})
 	if err != nil {
 		panic(err)
 	}
+	return files
+}
+func gatherRoles() map[string]rstparsers.RstRole {
+
+	files := gatherFiles()
 
 	var wg sync.WaitGroup
 
@@ -86,4 +101,5 @@ func main() {
 		fmt.Println(role)
 	}
 
+	return make(map[string]rstparsers.RstRole)
 }
