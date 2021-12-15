@@ -1,10 +1,10 @@
 package collectors
 
 import (
-	"checker/rstparsers"
+	"checker/internal/rstparsers"
+	_ "embed"
 	"io"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	log "github.com/sirupsen/logrus"
@@ -12,14 +12,17 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+var (
+	//go:embed testdata/index.txt
+	indexFile string
+
+	//go:embed testdata/aggregation.txt
+	aggregationsFile string
+)
+
 func init() {
 	FS = iowrap.NewMemMapFs()
 	FSUtil = &iowrap.Afero{Fs: FS}
-	_, b, _, ok := runtime.Caller(0)
-	if !ok {
-		log.Fatal("Could not get caller")
-	}
-	basepath = filepath.Dir(b)
 
 }
 
@@ -118,7 +121,7 @@ func TestGatherRoles(t *testing.T) {
 			{Target: "What", RoleType: "role", Name: "doc"}},
 	}
 
-	actual := gatherRoles()
+	actual := gatherRoles(gatherFiles())
 
 	assert.EqualValues(t, expected, actual, "gatherRoles should return all roles in source directory")
 
@@ -142,7 +145,7 @@ func TestGatherConstants(t *testing.T) {
 		"/source/index.txt": {},
 	}
 
-	actual := gatherConstants()
+	actual := gatherConstants(gatherFiles())
 
 	assert.EqualValues(t, expected, actual, "gatherConstants should return all constants in source directory")
 

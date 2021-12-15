@@ -49,7 +49,7 @@ func TestLinkParser(t *testing.T) {
 		"http://vibed.org/docs#mongo",
 		"http://pub.dartlang.org/packages/mongo_dart",
 	}
-	actual := ParseForLinks(linkInput)
+	actual := ParseForLinks([]byte(linkInput))
 	if len(actual) != len(expected) {
 		t.Errorf("Expected %d files, got %d", len(expected), len(actual))
 	}

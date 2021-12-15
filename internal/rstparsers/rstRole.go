@@ -11,10 +11,10 @@ type RstRole struct {
 	Name     string
 }
 
-func ParseForRoles(input string) []RstRole {
+func ParseForRoles(input []byte) []RstRole {
 	roles := make([]RstRole, 0)
 	re := regexp.MustCompile(`:([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*):\x60([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)<?([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)>?`)
-	allIndexes := re.FindAllSubmatchIndex([]byte(input), -1)
+	allIndexes := re.FindAllSubmatchIndex(input, -1)
 	for _, loc := range allIndexes {
 		extract := input[loc[0]:loc[1]]
 		innerMatches := re.FindAllStringSubmatch(strings.Join(strings.Fields(string(extract)), ""), -1)

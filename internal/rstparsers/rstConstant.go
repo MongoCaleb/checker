@@ -10,10 +10,10 @@ type RstConstant struct {
 	Target string
 }
 
-func ParseForConstants(input string) []RstConstant {
+func ParseForConstants(input []byte) []RstConstant {
 	constants := make([]RstConstant, 0)
 	re := regexp.MustCompile(`<\{\+([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)\+\}(\/[\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)>\x60`)
-	allIndexes := re.FindAllSubmatchIndex([]byte(input), -1)
+	allIndexes := re.FindAllSubmatchIndex(input, -1)
 	for _, loc := range allIndexes {
 		extract := input[loc[0]:loc[1]]
 		innerMatches := re.FindAllStringSubmatch(strings.Join(strings.Fields(string(extract)), ""), -1)
