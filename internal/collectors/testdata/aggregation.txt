@@ -54,7 +54,7 @@ Aggregation operations have some :manual:`limitations </core/aggregation-pipelin
 - Returned documents must not violate the :manual:`BSON-document size limit </reference/limits/#mongodb-limit-BSON-Document-Size>`
   of 16 megabytes.
 
-- Pipeline stages have a memory limit of 100 megabytes by default. If necessary, you may exceed this limit by setting the ``allowDiskUse``
+- Pipeline stages have a memory limit of 100 megabytes by default. You may exceed this limit by setting the ``allowDiskUse``
   property of ``AggregateOptions`` to ``true``. See the
   `AggregateOptions API documentation <{+api+}/interfaces/AggregateOptions.html>`__
   for more details.
@@ -80,12 +80,6 @@ The example uses sample data about restaurants. The following code
 inserts data into the ``restaurants`` collection of the ``aggregation``
 database:
 
-.. literalinclude:: /code-snippets/aggregation/agg.js
-   :start-after: begin data insertion
-   :end-before: end data insertion
-   :language: javascript
-   :dedent:
-
 .. tip::
 
    For more information on connecting to your MongoDB deployment, see the :doc:`Connection Guide </fundamentals/connection>`.
@@ -103,12 +97,6 @@ In the example, the aggregation pipeline uses the following aggregation stages:
 
 - A :manual:`$group </reference/operator/aggregation/group/>` stage to group the matching documents by the ``stars``
   field, accumulating a count of documents for each distinct value of ``stars``.
-
-.. literalinclude:: /code-snippets/aggregation/agg.js
-   :start-after: begin aggregation
-   :end-before: end aggregation
-   :language: javascript
-   :dedent:
 
 This example should produce the following output:
 

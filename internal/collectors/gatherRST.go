@@ -87,3 +87,11 @@ func gatherConstants(files []string) map[string][]rstparsers.RstConstant {
 	})
 	return consts
 }
+
+func gatherHTTPLinks(files []string) map[string][]rstparsers.RstHTTPLink {
+	links := make(map[string][]rstparsers.RstHTTPLink, len(files))
+	gather(files, func(filename string, data []byte) {
+		links[filename] = rstparsers.ParseForHTTPLinks(data)
+	})
+	return links
+}

@@ -7,7 +7,7 @@ import (
 
 type RstHTTPLink string
 
-func ParseForLinks(input []byte) []RstHTTPLink {
+func ParseForHTTPLinks(input []byte) []RstHTTPLink {
 	re := regexp.MustCompile(`(https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
 
 	links := make([]RstHTTPLink, 0)

@@ -39,7 +39,6 @@ func contains(s []RstHTTPLink, str RstHTTPLink) bool {
 }
 
 func TestLinkParser(t *testing.T) {
-
 	expected := []RstHTTPLink{
 		"http://a.bad.url",
 		"https://www.google.com",
@@ -49,7 +48,7 @@ func TestLinkParser(t *testing.T) {
 		"http://vibed.org/docs#mongo",
 		"http://pub.dartlang.org/packages/mongo_dart",
 	}
-	actual := ParseForLinks([]byte(linkInput))
+	actual := ParseForHTTPLinks([]byte(linkInput))
 	if len(actual) != len(expected) {
 		t.Errorf("Expected %d files, got %d", len(expected), len(actual))
 	}

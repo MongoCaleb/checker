@@ -154,3 +154,30 @@ func TestGatherConstants(t *testing.T) {
 	assert.EqualValues(t, expected, actual, "gatherConstants should return all constants in source directory")
 
 }
+func TestGatherHTTPLinks(t *testing.T) {
+	defer afterTest(t)
+
+	check(FS.MkdirAll(filepath.Join(basepath, "source"), 0755))
+	check(FS.MkdirAll(filepath.Join(basepath, "source", "fundamentals"), 0755))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "snooty.toml"), []byte("test"), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "index.txt"), []byte(indexFile), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "aggregation.txt"), []byte(aggregationsFile), 0644))
+
+	expected := map[string][]rstparsers.RstHTTPLink{
+		"/source/fundamentals/aggregation.txt": {
+			"https://www.mongodb.com/blog/post/quick-start-nodejs--mongodb--how-to-analyze-data-using-the-aggregation-framework",
+		},
+		"/source/index.txt": {
+			"https://github.com/mongodb/node-mongodb-native/releases/",
+			"https://github.com/mongodb/node-mongodb-native/",
+			"https://developer.mongodb.com/learn/?content=Articles&text=Node.js",
+			"https://developer.mongodb.com/community/forums/tag/node-js",
+			"https://university.mongodb.com/courses/M220JS/about",
+		},
+	}
+
+	actual := gatherHTTPLinks(gatherFiles())
+
+	assert.EqualValues(t, expected, actual, "gatherConstants should return all constants in source directory")
+
+}
