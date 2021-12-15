@@ -5,7 +5,7 @@ import (
 )
 
 func FindLocalRefs(input string) map[string]Ref {
-	refs := make(map[string]Ref, 0)
+	refs := make(map[string]Ref)
 
 	re := regexp.MustCompile(`\.\.\s_([\w\-_=+!@#$%^&(\)]+):`)
 	allIndexes := re.FindAllSubmatchIndex([]byte(input), -1)

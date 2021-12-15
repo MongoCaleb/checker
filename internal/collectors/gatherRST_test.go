@@ -26,9 +26,17 @@ func init() {
 
 }
 
+func check(err error) {
+	if err != nil {
+		log.Panic(err)
+	}
+}
+
 func afterTest(t *testing.T) {
 	t.Cleanup(func() {
-		FS.RemoveAll(basepath)
+		if err := FS.RemoveAll(basepath); err != nil {
+			log.Fatal(err)
+		}
 	})
 
 }
@@ -43,7 +51,7 @@ func TestSnootyTomlNonExist(t *testing.T) {
 func TestChecksIfSnootyTomlExists(t *testing.T) {
 	defer afterTest(t)
 
-	iowrap.WriteFile(FS, filepath.Join(basepath, "snooty.toml"), []byte(""), 0644)
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "snooty.toml"), []byte(""), 0644))
 
 	assert.True(t, snootyTomlExists(), "Snooty.toml should exist")
 }
@@ -58,8 +66,8 @@ func TestFindsSourceDirectory(t *testing.T) {
 	defer afterTest(t)
 	log.SetOutput(io.Discard)
 
-	FS.MkdirAll(filepath.Join(basepath, "source/"), 0755)
-	iowrap.WriteFile(FS, filepath.Join(basepath, "snooty.toml"), []byte("test"), 0644)
+	check(FS.MkdirAll(filepath.Join(basepath, "source/"), 0755))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "snooty.toml"), []byte("test"), 0644))
 
 	assert.True(t, sourceDirectoryExists(), "Source directory found")
 
@@ -74,15 +82,13 @@ func TestGatherXPanicsIfNoSourceOrSnootyToml(t *testing.T) {
 func TestGatherFiles(t *testing.T) {
 	defer afterTest(t)
 
-	FS.MkdirAll(filepath.Join(basepath, "source"), 0755)
-	FS.MkdirAll(filepath.Join(basepath, "source", "fundamentals"), 0755)
-	iowrap.WriteFile(FS, filepath.Join(basepath, "snooty.toml"), []byte("test"), 0644)
-
-	iowrap.WriteFile(FS, filepath.Join(basepath, "source", "foo.txt"), []byte("test"), 0644)
-	iowrap.WriteFile(FS, filepath.Join(basepath, "source", "bar.txt"), []byte("test"), 0644)
-	iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "baz.txt"), []byte("test"), 0644)
-	iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "biz.txt"), []byte("test"), 0644)
-
+	check(FS.MkdirAll(filepath.Join(basepath, "source"), 0755))
+	check(FS.MkdirAll(filepath.Join(basepath, "source", "fundamentals"), 0755))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "snooty.toml"), []byte("test"), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "foo.txt"), []byte("test"), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "bar.txt"), []byte("test"), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "baz.txt"), []byte("test"), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "biz.txt"), []byte("test"), 0644))
 	expected := []string{filepath.Join(basepath, "source", "foo.txt"), filepath.Join(basepath, "source", "bar.txt"), filepath.Join(basepath, "source", "fundamentals", "baz.txt"), filepath.Join(basepath, "source", "fundamentals", "biz.txt")}
 	actual := gatherFiles()
 
@@ -93,12 +99,11 @@ func TestGatherFiles(t *testing.T) {
 func TestGatherRoles(t *testing.T) {
 	defer afterTest(t)
 
-	FS.MkdirAll(filepath.Join(basepath, "source"), 0755)
-	FS.MkdirAll(filepath.Join(basepath, "source", "fundamentals"), 0755)
-	iowrap.WriteFile(FS, filepath.Join(basepath, "snooty.toml"), []byte("test"), 0644)
-
-	iowrap.WriteFile(FS, filepath.Join(basepath, "source", "index.txt"), []byte(indexFile), 0644)
-	iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "aggregation.txt"), []byte(aggregationsFile), 0644)
+	check(FS.MkdirAll(filepath.Join(basepath, "source"), 0755))
+	check(FS.MkdirAll(filepath.Join(basepath, "source", "fundamentals"), 0755))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "snooty.toml"), []byte("test"), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "index.txt"), []byte(indexFile), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "aggregation.txt"), []byte(aggregationsFile), 0644))
 
 	expected := map[string][]rstparsers.RstRole{
 		"/source/fundamentals/aggregation.txt": {
@@ -130,12 +135,11 @@ func TestGatherRoles(t *testing.T) {
 func TestGatherConstants(t *testing.T) {
 	defer afterTest(t)
 
-	FS.MkdirAll(filepath.Join(basepath, "source"), 0755)
-	FS.MkdirAll(filepath.Join(basepath, "source", "fundamentals"), 0755)
-	iowrap.WriteFile(FS, filepath.Join(basepath, "snooty.toml"), []byte("test"), 0644)
-
-	iowrap.WriteFile(FS, filepath.Join(basepath, "source", "index.txt"), []byte(indexFile), 0644)
-	iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "aggregation.txt"), []byte(aggregationsFile), 0644)
+	check(FS.MkdirAll(filepath.Join(basepath, "source"), 0755))
+	check(FS.MkdirAll(filepath.Join(basepath, "source", "fundamentals"), 0755))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "snooty.toml"), []byte("test"), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "index.txt"), []byte(indexFile), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "aggregation.txt"), []byte(aggregationsFile), 0644))
 
 	expected := map[string][]rstparsers.RstConstant{
 		"/source/fundamentals/aggregation.txt": {

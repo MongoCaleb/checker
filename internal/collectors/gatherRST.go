@@ -81,7 +81,7 @@ func gatherRoles(files []string) map[string][]rstparsers.RstRole {
 }
 
 func gatherConstants(files []string) map[string][]rstparsers.RstConstant {
-	consts := make(map[string][]rstparsers.RstConstant, 0)
+	consts := make(map[string][]rstparsers.RstConstant, len(files))
 	gather(files, func(filename string, data []byte) {
 		consts[filename] = rstparsers.ParseForConstants(data)
 	})

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/zlib"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"strings"
 	"testing"
@@ -127,7 +128,9 @@ usage-examples std:doc -1 usage-examples/ Usage Examples`)
 
 	var b bytes.Buffer
 	w := zlib.NewWriter(&b)
-	w.Write(zText)
+	if _, err := w.Write(zText); err != nil {
+		log.Fatal(err)
+	}
 	w.Close()
 
 	r := ioutil.NopCloser(strings.NewReader(header + b.String()))
