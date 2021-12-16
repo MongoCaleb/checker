@@ -1,11 +1,6 @@
 package sources
 
 import (
-	"context"
-	"io"
-	"net/http"
-	"time"
-
 	"github.com/BurntSushi/toml"
 	log "github.com/sirupsen/logrus"
 )
@@ -17,34 +12,11 @@ type RawMap struct {
 // RoleMap contains roles from rstSpec.toml
 type RoleMap map[string]string
 
-func init() {
-	Client = &http.Client{}
-}
-
-func NewRoleMap(rstSpecURL string) RoleMap {
-
-	ctx, cancel := context.WithTimeout(context.TODO(), 5*time.Second)
-	defer cancel()
-
-	// get the release version of rstspec.toml
-	req, err := http.NewRequestWithContext(ctx, "GET", rstSpecURL, nil)
-	if err != nil {
-		log.Errorf("Error creating request to url %s: %v", rstSpecURL, err)
-	}
-	resp, err := Client.Do(req)
-	if err != nil {
-		log.Errorf("Error getting response from url %s: %v", rstSpecURL, err)
-	}
-	defer resp.Body.Close()
-
-	buff, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
+func NewRoleMap(input []byte) RoleMap {
 
 	// populate a raw role map that is map[string]interface{}
 	var rawmap RawMap
-	_, err = toml.Decode(string(buff), &rawmap)
+	_, err := toml.Decode(string(input), &rawmap)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 	}

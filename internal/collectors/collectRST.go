@@ -1,7 +1,7 @@
 package collectors
 
 import (
-	"checker/internal/rstparsers"
+	"checker/internal/parsers/rst"
 	"os"
 	"path/filepath"
 	"strings"
@@ -72,26 +72,26 @@ func gather(files []string, fn func(filename string, data []byte)) {
 	}
 }
 
-func gatherRoles(files []string) map[string][]rstparsers.RstRole {
-	roles := make(map[string][]rstparsers.RstRole, len(files))
+func gatherRoles(files []string) map[string][]rst.RstRole {
+	roles := make(map[string][]rst.RstRole, len(files))
 	gather(files, func(filename string, data []byte) {
-		roles[filename] = rstparsers.ParseForRoles(data)
+		roles[filename] = rst.ParseForRoles(data)
 	})
 	return roles
 }
 
-func gatherConstants(files []string) map[string][]rstparsers.RstConstant {
-	consts := make(map[string][]rstparsers.RstConstant, len(files))
+func gatherConstants(files []string) map[string][]rst.RstConstant {
+	consts := make(map[string][]rst.RstConstant, len(files))
 	gather(files, func(filename string, data []byte) {
-		consts[filename] = rstparsers.ParseForConstants(data)
+		consts[filename] = rst.ParseForConstants(data)
 	})
 	return consts
 }
 
-func gatherHTTPLinks(files []string) map[string][]rstparsers.RstHTTPLink {
-	links := make(map[string][]rstparsers.RstHTTPLink, len(files))
+func gatherHTTPLinks(files []string) map[string][]rst.RstHTTPLink {
+	links := make(map[string][]rst.RstHTTPLink, len(files))
 	gather(files, func(filename string, data []byte) {
-		links[filename] = rstparsers.ParseForHTTPLinks(data)
+		links[filename] = rst.ParseForHTTPLinks(data)
 	})
 	return links
 }

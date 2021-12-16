@@ -1,9 +1,6 @@
 package sources
 
 import (
-	"io/ioutil"
-	"net/http"
-	"strings"
 	"testing"
 )
 
@@ -41,18 +38,7 @@ type = {link = "https://en.wikipedia.org/wiki/%s"}
 
 func TestRoleMap(t *testing.T) {
 
-	r := ioutil.NopCloser(strings.NewReader(roleMapInput))
-
-	Client = &MockClient{
-		DoFunc: func(req *http.Request) (*http.Response, error) {
-			return &http.Response{
-				StatusCode: 200,
-				Body:       r,
-			}, nil
-		},
-	}
-
-	roleMap := NewRoleMap("test")
+	roleMap := NewRoleMap([]byte(roleMapInput))
 
 	if len(roleMap) != 2 {
 		t.Errorf("Expected 2 roles, got %d", len(roleMap))
@@ -64,4 +50,26 @@ func TestRoleMap(t *testing.T) {
 			t.Errorf("Expected %s to be %s, got %s", k, v, roleMap[k])
 		}
 	}
+}
+
+func TestGet(t *testing.T) {
+
+	roleMap := NewRoleMap([]byte(roleMapInput))
+
+	tests := []struct {
+		expected bool
+		input    string
+	}{
+		{true, "rfc"},
+		{true, "wikipedia"},
+		{false, "nope"},
+	}
+
+	for _, test := range tests {
+		_, got := roleMap.Get(test.input)
+		if got != test.expected {
+			t.Errorf("Expected %s to be %t, got %t", test.input, test.expected, got)
+		}
+	}
+
 }

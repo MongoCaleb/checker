@@ -1,7 +1,7 @@
 package collectors
 
 import (
-	"checker/internal/rstparsers"
+	"checker/internal/parsers/rst"
 	_ "embed"
 	"io"
 	"path/filepath"
@@ -105,7 +105,7 @@ func TestGatherRoles(t *testing.T) {
 	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "index.txt"), []byte(indexFile), 0644))
 	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "aggregation.txt"), []byte(aggregationsFile), 0644))
 
-	expected := map[string][]rstparsers.RstRole{
+	expected := map[string][]rst.RstRole{
 		"/source/fundamentals/aggregation.txt": {
 			{Target: "/core/aggregation-pipeline-limits/", RoleType: "role", Name: "manual"},
 			{Target: "/reference/limits/#mongodb-limit-BSON-Document-Size", RoleType: "role", Name: "manual"},
@@ -141,7 +141,7 @@ func TestGatherConstants(t *testing.T) {
 	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "index.txt"), []byte(indexFile), 0644))
 	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "aggregation.txt"), []byte(aggregationsFile), 0644))
 
-	expected := map[string][]rstparsers.RstConstant{
+	expected := map[string][]rst.RstConstant{
 		"/source/fundamentals/aggregation.txt": {
 			{Name: "api", Target: "/interfaces/AggregateOptions.html"},
 			{Name: "api", Target: "/classes/Collection.html#aggregate"},
@@ -163,7 +163,7 @@ func TestGatherHTTPLinks(t *testing.T) {
 	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "index.txt"), []byte(indexFile), 0644))
 	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "aggregation.txt"), []byte(aggregationsFile), 0644))
 
-	expected := map[string][]rstparsers.RstHTTPLink{
+	expected := map[string][]rst.RstHTTPLink{
 		"/source/fundamentals/aggregation.txt": {
 			"https://www.mongodb.com/blog/post/quick-start-nodejs--mongodb--how-to-analyze-data-using-the-aggregation-framework",
 		},
