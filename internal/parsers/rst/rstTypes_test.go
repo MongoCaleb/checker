@@ -9,27 +9,27 @@ import (
 func TestFindLocalRefs(t *testing.T) {
 	cases := []struct {
 		input    string
-		expected []LocalRef
+		expected []RefTarget
 	}{{
 		input:    "",
-		expected: []LocalRef{},
+		expected: []RefTarget{},
 	}, {
 		input:    ".. _:",
-		expected: []LocalRef{},
+		expected: []RefTarget{},
 	}, {
 		input: ".. _foo:",
-		expected: []LocalRef{
+		expected: []RefTarget{
 			{Target: "foo", Type: "local"},
 		},
 	}, {
 		input: ".. _foo:\n.. _bar:",
-		expected: []LocalRef{
+		expected: []RefTarget{
 			{Target: "foo", Type: "local"},
 			{Target: "bar", Type: "local"},
 		},
 	}, {
 		input: ".. _foo:\n.. _bar:\n\n\n\n\n\n.. _baz:",
-		expected: []LocalRef{
+		expected: []RefTarget{
 			{Target: "foo", Type: "local"},
 			{Target: "bar", Type: "local"},
 			{Target: "baz", Type: "local"},
@@ -38,7 +38,7 @@ func TestFindLocalRefs(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		actual := ParseForLocalRefs(c.input)
+		actual := ParseForLocalRefs([]byte(c.input))
 		assert.Equal(t, len(c.expected), len(actual), "FindLocalRefs(%q) should return %d refs, got %d", c.input, len(c.expected), len(actual))
 
 		for i, ref := range actual {
@@ -80,6 +80,24 @@ func TestConstantParser(t *testing.T) {
 	for _, test := range cases {
 		got := ParseForConstants([]byte(test.input))
 		assert.ElementsMatch(t, test.expected, got, "ParseForConstants(%q) should return %v, got %v", test.input, test.expected, got)
+	}
+}
+
+func TestFindLinkInConstant(t *testing.T) {
+	cases := []struct {
+		input    RstConstant
+		expected bool
+	}{{
+		input:    RstConstant{Target: "https://www.google.com", Name: "api"},
+		expected: true,
+	}, {
+		input:    RstConstant{Target: "v1.8.0", Name: "api"},
+		expected: false,
+	}}
+
+	for _, c := range cases {
+		actual := c.input.IsHTTPLink()
+		assert.Equal(t, c.expected, actual, "IsLink(%q) should return %v, got %v", c.input, c.expected, actual)
 	}
 }
 

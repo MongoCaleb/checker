@@ -2,6 +2,8 @@ package sources
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -45,31 +47,7 @@ func TestRoleMap(t *testing.T) {
 	}
 
 	expected := map[string]string{"rfc": "https://tools.ietf.org/html/%s", "wikipedia": "https://en.wikipedia.org/wiki/%s"}
-	for k, v := range expected {
-		if roleMap[k] != v {
-			t.Errorf("Expected %s to be %s, got %s", k, v, roleMap[k])
-		}
-	}
-}
 
-func TestGet(t *testing.T) {
-
-	roleMap := NewRoleMap([]byte(roleMapInput))
-
-	tests := []struct {
-		expected bool
-		input    string
-	}{
-		{true, "rfc"},
-		{true, "wikipedia"},
-		{false, "nope"},
-	}
-
-	for _, test := range tests {
-		_, got := roleMap.Get(test.input)
-		if got != test.expected {
-			t.Errorf("Expected %s to be %t, got %t", test.input, test.expected, got)
-		}
-	}
+	assert.EqualValues(t, expected, roleMap, "Expected %v, got %v", expected, roleMap)
 
 }

@@ -10,9 +10,9 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type RefMap map[string]rst.LocalRef
+type SphinxMap map[string]map[string]rst.RefTarget
 
-func Intersphinx(buff []byte, domain string) RefMap {
+func Intersphinx(buff []byte, domain string) SphinxMap {
 
 	markerLine := "# The remainder of this file is compressed using zlib.\n"
 	cut := bytes.Index(buff, []byte(markerLine)) + len(markerLine)
@@ -40,15 +40,27 @@ func Intersphinx(buff []byte, domain string) RefMap {
 		return nil
 	}
 
-	refMap := make(RefMap)
+	outer := make(map[string]map[string]rst.RefTarget)
+	inner := make(map[string]rst.RefTarget)
+
+	outer[domain] = inner
 
 	for _, line := range strings.Split(string(parsed), "\n") {
 		if len(line) == 0 {
 			continue
 		}
 		lineSplit := strings.Split(line, " ")
-		refMap[lineSplit[0]] = rst.LocalRef{Target: domain + lineSplit[3], Type: "intersphinx"}
+		inner[lineSplit[0]] = rst.RefTarget{Target: domain + lineSplit[3] + "%s", Type: "intersphinx"}
 	}
+	return outer
+}
 
+func JoinSphinxes(input []SphinxMap) SphinxMap {
+	refMap := make(SphinxMap)
+	for _, m := range input {
+		for k, v := range m {
+			refMap[k] = v
+		}
+	}
 	return refMap
 }

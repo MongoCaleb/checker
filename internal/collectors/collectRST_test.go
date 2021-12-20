@@ -18,6 +18,9 @@ var (
 
 	//go:embed testdata/aggregation.txt
 	aggregationsFile string
+
+	//go:embed testdata/gridfs.txt
+	grifsFile string
 )
 
 func init() {
@@ -177,6 +180,33 @@ func TestGatherHTTPLinks(t *testing.T) {
 	}
 
 	actual := gatherHTTPLinks(gatherFiles())
+
+	assert.EqualValues(t, expected, actual, "gatherConstants should return all constants in source directory")
+
+}
+
+func TestGatherLocalRefs(t *testing.T) {
+	defer afterTest(t)
+
+	check(FS.MkdirAll(filepath.Join(basepath, "source"), 0755))
+	check(FS.MkdirAll(filepath.Join(basepath, "source", "fundamentals"), 0755))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "snooty.toml"), []byte("test"), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "aggregation.txt"), []byte(aggregationsFile), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "gridfs.txt"), []byte(grifsFile), 0644))
+
+	expected := map[string][]rst.RefTarget{
+		"/source/fundamentals/aggregation.txt": {{Target: "nodejs-aggregation-overview", Type: "local"}},
+		"/source/fundamentals/gridfs.txt": {
+			{Target: "gridfs-create-bucket", Type: "local"},
+			{Target: "gridfs-upload-files", Type: "local"},
+			{Target: "gridfs-retrieve-file-info", Type: "local"},
+			{Target: "gridfs-download-files", Type: "local"},
+			{Target: "gridfs-rename-files", Type: "local"},
+			{Target: "gridfs-delete-files", Type: "local"},
+			{Target: "gridfs-delete-bucket", Type: "local"}},
+	}
+
+	actual := gatherLocalRefs(gatherFiles())
 
 	assert.EqualValues(t, expected, actual, "gatherConstants should return all constants in source directory")
 

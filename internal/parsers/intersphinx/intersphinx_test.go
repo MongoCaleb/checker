@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/sirupsen/logrus"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNoContents(t *testing.T) {
@@ -18,10 +19,7 @@ func TestNoContents(t *testing.T) {
 	header := ""
 
 	resp := Intersphinx([]byte(header), "test")
-	if resp != nil {
-		t.Errorf("Expected nil, got %v", resp)
-	}
-
+	assert.Nil(t, resp, "Expected nil, got %v", resp)
 }
 
 func TestInvalidHeader(t *testing.T) {
@@ -32,10 +30,7 @@ func TestInvalidHeader(t *testing.T) {
 # Version:
 `)
 	resp := Intersphinx(header, "test")
-	if resp != nil {
-		t.Errorf("Expected nil, got %v", resp)
-	}
-
+	assert.Nil(t, resp, "Expected nil, got %v", resp)
 }
 func TestHeaderNoContent(t *testing.T) {
 
@@ -46,10 +41,7 @@ func TestHeaderNoContent(t *testing.T) {
 `)
 
 	resp := Intersphinx(header, "test")
-	if resp != nil {
-		t.Errorf("Expected nil, got %v", resp)
-	}
-
+	assert.Nil(t, resp, "Expected nil, got %v", resp)
 }
 
 func TestInvalidContent(t *testing.T) {
@@ -67,10 +59,7 @@ usage-examples std:doc -1 usage-examples/ Usage Examples`)
 
 	resp := Intersphinx(append(header, zText...), "test")
 
-	if resp != nil {
-		t.Errorf("Expected nil, got %v", resp)
-	}
-
+	assert.Nil(t, resp, "Expected nil, got %v", resp)
 }
 
 func TestSomeContent(t *testing.T) {
@@ -93,23 +82,52 @@ usage-examples std:doc -1 usage-examples/ Usage Examples`)
 	}
 	w.Close()
 
-	resp := Intersphinx(append(header, b.Bytes()...), "https://docs.mongodb.com/drivers/go/current/")
+	resp := Intersphinx(append(header, b.Bytes()...), "https://test.com/")
 
-	if len(resp) != 4 {
-		t.Errorf("Expected 4 entries, got %v", len(resp))
+	expected := SphinxMap{
+		"https://test.com/": {
+			"whats-new":      rst.RefTarget{Target: "https://test.com/whats-new/%s", Type: "intersphinx"},
+			"compatibility":  rst.RefTarget{Target: "https://test.com/compatibility/%s", Type: "intersphinx"},
+			"fundamentals":   rst.RefTarget{Target: "https://test.com/fundamentals/%s", Type: "intersphinx"},
+			"usage-examples": rst.RefTarget{Target: "https://test.com/usage-examples/%s", Type: "intersphinx"},
+		},
 	}
 
-	expected := RefMap{
-		"whats-new":      rst.LocalRef{Target: "https://docs.mongodb.com/drivers/go/current/whats-new/", Type: "intersphinx"},
-		"compatibility":  rst.LocalRef{Target: "https://docs.mongodb.com/drivers/go/current/compatibility/", Type: "intersphinx"},
-		"fundamentals":   rst.LocalRef{Target: "https://docs.mongodb.com/drivers/go/current/fundamentals/", Type: "intersphinx"},
-		"usage-examples": rst.LocalRef{Target: "https://docs.mongodb.com/drivers/go/current/usage-examples/", Type: "intersphinx"},
+	assert.EqualValues(t, expected, resp, "Expected %v, got %v", expected, resp)
+}
+
+func TestJoinSphinxes(t *testing.T) {
+	input := []SphinxMap{{
+		"https://test1.com/": {
+			"whats-new":      rst.RefTarget{Target: "https://test1.com/whats-new/%s", Type: "intersphinx"},
+			"compatibility":  rst.RefTarget{Target: "https://test1.com/compatibility/%s", Type: "intersphinx"},
+			"fundamentals":   rst.RefTarget{Target: "https://test1.com/fundamentals/%s", Type: "intersphinx"},
+			"usage-examples": rst.RefTarget{Target: "https://test1.com/usage-examples/%s", Type: "intersphinx"},
+		},
+		"https://test2.com/": {
+			"whats-new":      rst.RefTarget{Target: "https://test2.com/whats-new/%s", Type: "intersphinx"},
+			"compatibility":  rst.RefTarget{Target: "https://test2.com/compatibility/%s", Type: "intersphinx"},
+			"fundamentals":   rst.RefTarget{Target: "https://test2.com/fundamentals/%s", Type: "intersphinx"},
+			"usage-examples": rst.RefTarget{Target: "https://test2.com/usage-examples/%s", Type: "intersphinx"},
+		},
+	}}
+
+	expected := SphinxMap{
+		"https://test1.com/": {
+			"whats-new":      rst.RefTarget{Target: "https://test1.com/whats-new/%s", Type: "intersphinx"},
+			"compatibility":  rst.RefTarget{Target: "https://test1.com/compatibility/%s", Type: "intersphinx"},
+			"fundamentals":   rst.RefTarget{Target: "https://test1.com/fundamentals/%s", Type: "intersphinx"},
+			"usage-examples": rst.RefTarget{Target: "https://test1.com/usage-examples/%s", Type: "intersphinx"},
+		},
+		"https://test2.com/": {
+			"whats-new":      rst.RefTarget{Target: "https://test2.com/whats-new/%s", Type: "intersphinx"},
+			"compatibility":  rst.RefTarget{Target: "https://test2.com/compatibility/%s", Type: "intersphinx"},
+			"fundamentals":   rst.RefTarget{Target: "https://test2.com/fundamentals/%s", Type: "intersphinx"},
+			"usage-examples": rst.RefTarget{Target: "https://test2.com/usage-examples/%s", Type: "intersphinx"},
+		},
 	}
 
-	for k, v := range resp {
-		if v != expected[k] {
-			t.Errorf("Expected %v, got %v", expected[k], v)
-		}
-	}
+	actual := JoinSphinxes(input)
 
+	assert.EqualValues(t, expected, actual, "expected %v, got %v", expected, actual)
 }

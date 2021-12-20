@@ -2,10 +2,12 @@ package sources
 
 import (
 	"context"
-	"log"
+	"io/ioutil"
+	"net/http"
 	"time"
 
 	"github.com/google/go-github/v41/github"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -26,4 +28,18 @@ func GetLatestSnootyParserTag() string {
 
 	latest := tags[0].Name
 	return rstSpecBase + *latest + "/snooty/rstspec.toml"
+}
+
+func GetIntersphinxFile(input string) []byte {
+	resp, err := http.Get(input)
+	if err != nil {
+		log.Panic(err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Panic(err)
+	}
+	return body
 }

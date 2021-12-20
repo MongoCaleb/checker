@@ -2,6 +2,8 @@ package sources
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const tomlConfigInput = `
@@ -31,30 +33,24 @@ baz = "baz+{+foo+}"
 func TestSnootyToml(t *testing.T) {
 	cfg, err := NewTomlConfig(tomlConfigInput)
 	if err != nil {
-		t.Errorf("error parsing toml: %v", err)
+		t.Errorf("error parsing toml in test\n: %v", err)
 	}
 
 	if cfg.Name != "this is a test" {
-		t.Errorf("expected name to be 'go', got %s", cfg.Name)
+		t.Errorf("expected name to be 'go', got %s\n", cfg.Name)
 	}
-
+	assert.Equal(t, "this is a test", cfg.Name, "expected name to be 'go', got %s\n", cfg.Name)
+	assert.Equal(t, "TEST", cfg.Title, "expected title to be 'TEST', got %s\n", cfg.Title)
 	intersphinxes := []string{"https://docs.mongodb.com/manual/objects.inv", "https://docs.atlas.mongodb.com/objects.inv"}
-	for i, intersphinx := range cfg.Intersphinx {
-		if intersphinx != intersphinxes[i] {
-			t.Errorf("expected intersphinx to be %s, got %s", intersphinxes[i], intersphinx)
-		}
+	assert.ElementsMatch(t, intersphinxes, cfg.Intersphinx, "expected intersphinxes to be %v, got %v\n", intersphinxes, cfg.Intersphinx)
+	constants := map[string]string{
+		"docs-branch": "master",
+		"version":     "v1.8.0",
+		"example":     "https://raw.githubusercontent.com/mongodb/docs-golang/master/source/includes/usage-examples/code-snippets",
+		"api":         "https://pkg.go.dev/go.mongodb.org/mongo-driver@v1.8.0",
+		"foo":         "master@v1.8.0",
+		"bar":         "master",
+		"baz":         "baz+master@v1.8.0",
 	}
-}
-
-func TestConstantResolution(t *testing.T) {
-	cfg, err := NewTomlConfig(tomlConfigInput)
-	if err != nil {
-		t.Errorf("error parsing toml: %v", err)
-	}
-	expected := map[string]string{"docs-branch": "master", "version": "v1.8.0", "example": "https://raw.githubusercontent.com/mongodb/docs-golang/master/source/includes/usage-examples/code-snippets", "api": "https://pkg.go.dev/go.mongodb.org/mongo-driver@v1.8.0", "foo": "master@v1.8.0", "bar": "master", "baz": "baz+master@v1.8.0"}
-	for k, v := range expected {
-		if cfg.Constants[k] != v {
-			t.Errorf("expected %s to be %s, got %s", k, v, cfg.Constants[k])
-		}
-	}
+	assert.EqualValues(t, constants, cfg.Constants, "expected constants to be %v, got %v\n", constants, cfg.Constants)
 }

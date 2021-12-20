@@ -95,3 +95,11 @@ func gatherHTTPLinks(files []string) map[string][]rst.RstHTTPLink {
 	})
 	return links
 }
+
+func gatherLocalRefs(files []string) map[string][]rst.RefTarget {
+	refs := make(map[string][]rst.RefTarget, len(files))
+	gather(files, func(filename string, data []byte) {
+		refs[filename] = rst.ParseForLocalRefs(data)
+	})
+	return refs
+}

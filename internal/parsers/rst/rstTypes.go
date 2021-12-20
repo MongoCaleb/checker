@@ -24,7 +24,7 @@ type RstConstant struct {
 	Name   string
 	Target string
 }
-type LocalRef struct {
+type RefTarget struct {
 	Target string
 	Type   string
 }
@@ -74,14 +74,18 @@ func ParseForConstants(input []byte) []RstConstant {
 	return constants
 }
 
-func ParseForLocalRefs(input string) []LocalRef {
-	localrefs := make([]LocalRef, 0)
+func (r *RstConstant) IsHTTPLink() bool {
+	return httpLinkRegex.Match([]byte(r.Target))
+}
 
-	allIndexes := localRefRegex.FindAllString(input, -1)
+func ParseForLocalRefs(input []byte) []RefTarget {
+	localrefs := make([]RefTarget, 0)
+
+	allIndexes := localRefRegex.FindAllString(string(input), -1)
 	for _, match := range allIndexes {
 		innerMatches := localRefRegex.FindAllStringSubmatch(match, -1)
 		for _, match := range innerMatches {
-			localrefs = append(localrefs, LocalRef{Target: match[1], Type: "local"})
+			localrefs = append(localrefs, RefTarget{Target: match[1], Type: "local"})
 		}
 	}
 	return localrefs

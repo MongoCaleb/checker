@@ -5,7 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type RawMap struct {
+type rawMap struct {
 	Roles map[string]interface{} `toml:"role"`
 }
 
@@ -15,7 +15,7 @@ type RoleMap map[string]string
 func NewRoleMap(input []byte) RoleMap {
 
 	// populate a raw role map that is map[string]interface{}
-	var rawmap RawMap
+	var rawmap rawMap
 	_, err := toml.Decode(string(input), &rawmap)
 	if err != nil {
 		log.Fatalf("error: %v", err)
