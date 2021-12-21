@@ -230,7 +230,7 @@ func TestGatherLocalRefs(t *testing.T) {
 	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "aggregation.txt"), []byte(aggregationsFile), 0644))
 	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "gridfs.txt"), []byte(grifsFile), 0644))
 
-	expected := map[rst.RefTarget]string{
+	expected := RefTargetMap{
 		{Raw: "gridfs-create-bucket", Target: "gridfs-create-bucket", Type: "local"}:               "/source/fundamentals/gridfs.txt",
 		{Raw: "gridfs-delete-bucket", Target: "gridfs-delete-bucket", Type: "local"}:               "/source/fundamentals/gridfs.txt",
 		{Raw: "gridfs-delete-files", Target: "gridfs-delete-files", Type: "local"}:                 "/source/fundamentals/gridfs.txt",

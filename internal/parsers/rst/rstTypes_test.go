@@ -206,3 +206,30 @@ func TestRoleParser(t *testing.T) {
 		assert.ElementsMatch(t, test.expected, got, "ParseForConstants(%q) should return %v, got %v", test.input, test.expected, got)
 	}
 }
+
+func TestFindsSharedIncludes(t *testing.T) {
+	cases := []struct {
+		input    []byte
+		expected []SharedInclude
+	}{{
+		input:    []byte(""),
+		expected: []SharedInclude{},
+	}, {
+		input:    []byte(".. code-block::"),
+		expected: []SharedInclude{},
+	}, {
+		input:    []byte(".. important::"),
+		expected: []SharedInclude{},
+	}, {
+		input:    []byte(".. include:: /includes/foo.txt"),
+		expected: []SharedInclude{},
+	}, {
+		input:    []byte(".. sharedinclude:: dbx/about-compatibility.rst"),
+		expected: []SharedInclude{{Path: "dbx/about-compatibility.rst"}},
+	}}
+
+	for _, test := range cases {
+		got := ParseForSharedIncludes(test.input)
+		assert.ElementsMatch(t, test.expected, got, "ParseForSharedIncludes(%q) should return %v, got %v", test.input, test.expected, got)
+	}
+}

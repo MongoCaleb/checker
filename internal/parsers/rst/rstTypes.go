@@ -5,10 +5,11 @@ import (
 )
 
 var (
-	constantRegex = regexp.MustCompile(`<\{\+([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)\+\}(\/[\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)>\x60`)
-	httpLinkRegex = regexp.MustCompile(`(https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
-	roleRegex     = regexp.MustCompile(`:([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*):(\x60([\w\s\-_\.\d\\\/=+!@#$%^&*(\)\[\]\\\<\>'\?]*)\s|\x60([\w\s\-_\.\d\\\/=+!@#$%^&*(\)'\?]*))<?([\w\s\-_\.\d\\\/=+!@#$%^&*(\)\{\}]*)>?`)
-	localRefRegex = regexp.MustCompile(`\.\.\s_([\w\d\-_=+!@#$%^&(\)\.]+):`)
+	constantRegex      = regexp.MustCompile(`<\{\+([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)\+\}(\/[\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)>\x60`)
+	httpLinkRegex      = regexp.MustCompile(`(https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
+	roleRegex          = regexp.MustCompile(`:([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*):(\x60([\w\s\-_\.\d\\\/=+!@#$%^&*(\)\[\]\\\<\>'\?]*)\s|\x60([\w\s\-_\.\d\\\/=+!@#$%^&*(\)'\?]*))<?([\w\s\-_\.\d\\\/=+!@#$%^&*(\)\{\}]*)>?`)
+	localRefRegex      = regexp.MustCompile(`\.\.\s_([\w\d\-_=+!@#$%^&(\)\.]+):`)
+	sharedIncludeRegex = regexp.MustCompile(`\.\. sharedinclude::\s([\w\s\-_\.\d\\\/=+!@#$%^&*(\)\[\]\\\<\>'\?]+)`)
 )
 
 type RstHTTPLink string
@@ -27,6 +28,10 @@ type RefTarget struct {
 	Target string
 	Type   string
 	Raw    string
+}
+
+type SharedInclude struct {
+	Path string
 }
 
 func parse(input []byte, re regexp.Regexp, fn func(matches []string)) {
@@ -80,13 +85,17 @@ func (r *RstConstant) IsHTTPLink() bool {
 
 func ParseForLocalRefs(input []byte) []RefTarget {
 	localrefs := make([]RefTarget, 0)
+	parse(input, *localRefRegex, func(matches []string) {
+		localrefs = append(localrefs, RefTarget{Raw: matches[1], Target: matches[1], Type: "local"})
+	})
 
-	allIndexes := localRefRegex.FindAllString(string(input), -1)
-	for _, match := range allIndexes {
-		innerMatches := localRefRegex.FindAllStringSubmatch(match, -1)
-		for _, match := range innerMatches {
-			localrefs = append(localrefs, RefTarget{Raw: match[1], Target: match[1], Type: "local"})
-		}
-	}
 	return localrefs
+}
+
+func ParseForSharedIncludes(input []byte) []SharedInclude {
+	shared := make([]SharedInclude, 0)
+	parse(input, *sharedIncludeRegex, func(matches []string) {
+		shared = append(shared, SharedInclude{Path: matches[1]})
+	})
+	return shared
 }
