@@ -85,12 +85,10 @@ usage-examples std:doc -1 usage-examples/ Usage Examples`)
 	resp := Intersphinx(append(header, b.Bytes()...), "https://test.com/")
 
 	expected := SphinxMap{
-		"https://test.com/": {
-			"whats-new":      rst.RefTarget{Target: "https://test.com/whats-new/%s", Type: "intersphinx"},
-			"compatibility":  rst.RefTarget{Target: "https://test.com/compatibility/%s", Type: "intersphinx"},
-			"fundamentals":   rst.RefTarget{Target: "https://test.com/fundamentals/%s", Type: "intersphinx"},
-			"usage-examples": rst.RefTarget{Target: "https://test.com/usage-examples/%s", Type: "intersphinx"},
-		},
+		"whats-new":      rst.RefTarget{Raw: "whats-new/", Target: "https://test.com/whats-new/%s", Type: "intersphinx"},
+		"compatibility":  rst.RefTarget{Raw: "compatibility/", Target: "https://test.com/compatibility/%s", Type: "intersphinx"},
+		"fundamentals":   rst.RefTarget{Raw: "fundamentals/", Target: "https://test.com/fundamentals/%s", Type: "intersphinx"},
+		"usage-examples": rst.RefTarget{Raw: "usage-examples/", Target: "https://test.com/usage-examples/%s", Type: "intersphinx"},
 	}
 
 	assert.EqualValues(t, expected, resp, "Expected %v, got %v", expected, resp)
@@ -98,33 +96,25 @@ usage-examples std:doc -1 usage-examples/ Usage Examples`)
 
 func TestJoinSphinxes(t *testing.T) {
 	input := []SphinxMap{{
-		"https://test1.com/": {
-			"whats-new":      rst.RefTarget{Target: "https://test1.com/whats-new/%s", Type: "intersphinx"},
-			"compatibility":  rst.RefTarget{Target: "https://test1.com/compatibility/%s", Type: "intersphinx"},
-			"fundamentals":   rst.RefTarget{Target: "https://test1.com/fundamentals/%s", Type: "intersphinx"},
-			"usage-examples": rst.RefTarget{Target: "https://test1.com/usage-examples/%s", Type: "intersphinx"},
-		},
-		"https://test2.com/": {
-			"whats-new":      rst.RefTarget{Target: "https://test2.com/whats-new/%s", Type: "intersphinx"},
-			"compatibility":  rst.RefTarget{Target: "https://test2.com/compatibility/%s", Type: "intersphinx"},
-			"fundamentals":   rst.RefTarget{Target: "https://test2.com/fundamentals/%s", Type: "intersphinx"},
-			"usage-examples": rst.RefTarget{Target: "https://test2.com/usage-examples/%s", Type: "intersphinx"},
-		},
+		"whats-new":         rst.RefTarget{Target: "https://test1.com/whats-new/%s", Type: "intersphinx"},
+		"compatibility":     rst.RefTarget{Target: "https://test1.com/compatibility/%s", Type: "intersphinx"},
+		"fundamentals":      rst.RefTarget{Target: "https://test1.com/fundamentals/%s", Type: "intersphinx"},
+		"usage-examples":    rst.RefTarget{Target: "https://test1.com/usage-examples/%s", Type: "intersphinx"},
+		"foowhats-new":      rst.RefTarget{Target: "https://test2.com/whats-new/%s", Type: "intersphinx"},
+		"foocompatibility":  rst.RefTarget{Target: "https://test2.com/compatibility/%s", Type: "intersphinx"},
+		"foofundamentals":   rst.RefTarget{Target: "https://test2.com/fundamentals/%s", Type: "intersphinx"},
+		"foousage-examples": rst.RefTarget{Target: "https://test2.com/usage-examples/%s", Type: "intersphinx"},
 	}}
 
 	expected := SphinxMap{
-		"https://test1.com/": {
-			"whats-new":      rst.RefTarget{Target: "https://test1.com/whats-new/%s", Type: "intersphinx"},
-			"compatibility":  rst.RefTarget{Target: "https://test1.com/compatibility/%s", Type: "intersphinx"},
-			"fundamentals":   rst.RefTarget{Target: "https://test1.com/fundamentals/%s", Type: "intersphinx"},
-			"usage-examples": rst.RefTarget{Target: "https://test1.com/usage-examples/%s", Type: "intersphinx"},
-		},
-		"https://test2.com/": {
-			"whats-new":      rst.RefTarget{Target: "https://test2.com/whats-new/%s", Type: "intersphinx"},
-			"compatibility":  rst.RefTarget{Target: "https://test2.com/compatibility/%s", Type: "intersphinx"},
-			"fundamentals":   rst.RefTarget{Target: "https://test2.com/fundamentals/%s", Type: "intersphinx"},
-			"usage-examples": rst.RefTarget{Target: "https://test2.com/usage-examples/%s", Type: "intersphinx"},
-		},
+		"whats-new":         rst.RefTarget{Target: "https://test1.com/whats-new/%s", Type: "intersphinx"},
+		"compatibility":     rst.RefTarget{Target: "https://test1.com/compatibility/%s", Type: "intersphinx"},
+		"fundamentals":      rst.RefTarget{Target: "https://test1.com/fundamentals/%s", Type: "intersphinx"},
+		"usage-examples":    rst.RefTarget{Target: "https://test1.com/usage-examples/%s", Type: "intersphinx"},
+		"foowhats-new":      rst.RefTarget{Target: "https://test2.com/whats-new/%s", Type: "intersphinx"},
+		"foocompatibility":  rst.RefTarget{Target: "https://test2.com/compatibility/%s", Type: "intersphinx"},
+		"foofundamentals":   rst.RefTarget{Target: "https://test2.com/fundamentals/%s", Type: "intersphinx"},
+		"foousage-examples": rst.RefTarget{Target: "https://test2.com/usage-examples/%s", Type: "intersphinx"},
 	}
 
 	actual := JoinSphinxes(input)

@@ -52,6 +52,7 @@ all links are checked for validity.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
+		log.SetLevel(log.DebugLevel)
 		type intersphinxResult struct {
 			domain string
 			file   []byte
@@ -86,12 +87,14 @@ all links are checked for validity.`,
 		}()
 		wgSetup.Wait()
 
+		sphinxMap := intersphinx.JoinSphinxes(intersphinxes)
 		files := collectors.GatherFiles(basepath)
-
 		allConstants := collectors.GatherConstants(files)
 		allRoleTargets := collectors.GatherRoles(files)
 		allHTTPLinks := collectors.GatherHTTPLinks(files)
-		// allLocalRefs := collectors.GatherLocalRefs(files)
+		allLocalRefs := collectors.GatherLocalRefs(files)
+
+		log.Debug(allLocalRefs)
 
 		for con, filename := range allConstants {
 			if _, ok := projectCfg.Constants[con.Name]; !ok {
@@ -107,34 +110,52 @@ all links are checked for validity.`,
 		workStack := make([]func(), 0)
 		rstSpecRoles := sources.NewRoleMap(utils.GetNetworkFile(utils.GetLatestSnootyParserTag()))
 		for role, filename := range allRoleTargets {
-			if role.RoleType == "role" && role.Name == "manual" {
-				if _, ok := rstSpecRoles[role.Name]; !ok {
-					log.Errorf("%s is not defined in the rstspec", role)
-				}
-				url := fmt.Sprintf(rstSpecRoles[role.Name], role.Target)
-				errmsg := fmt.Sprintf("in %s: interpeted url %s from  %+v was not valid", filename, url, role)
-				workFunc := func() {
-					defer wgValidate.Done()
-					wgValidate.Add(1)
-					if _, ok := checkedUrls.Load(url); !ok {
-						checkedUrls.Store(url, true)
-						if !utils.IsReachable(url) {
-							log.Error(errmsg)
+			if role.RoleType == "role" {
+				switch role.Name {
+				case "doc":
+					found := false
+					for _, f := range files {
+						if strings.Contains(f, role.Target) {
+							found = true
+							break
 						}
 					}
+					if !found {
+						log.Errorf("in %s: %s is not a valid file found in this docset", filename, role)
+					}
+				default:
+					if _, ok := rstSpecRoles.Links[role.Name]; !ok {
+						if _, ok := rstSpecRoles.Raw.Roles[role.Name]; !ok {
+							log.Errorf("in %s: %s is not a valid role", filename, role)
+						}
+						continue
+					}
+					url := fmt.Sprintf(rstSpecRoles.Links[role.Name], role.Target)
+					errmsg := fmt.Sprintf("in %s: interpeted url %s from  %+v was not valid", filename, url, role)
+					workFunc := func() {
+						defer wgValidate.Done()
+						wgValidate.Add(1)
+						if _, ok := checkedUrls.Load(url); !ok {
+							checkedUrls.Store(url, true)
+							if !utils.IsReachable(url) {
+								log.Error(errmsg)
+							}
+						}
+					}
+					workStack = append(workStack, workFunc)
 				}
-				workStack = append(workStack, workFunc)
+			}
+			if role.RoleType == "ref" {
+				if _, ok := sphinxMap[role.Target]; !ok {
+					if _, ok := allLocalRefs.Get(&role); !ok {
+						log.Errorf("in %s: %+v is not a valid ref", filename, role)
+					}
+				}
 			}
 			for _, f := range workStack {
 				f()
 			}
 			wgValidate.Wait()
-
-			// if role.RoleType == "ref" {
-			// 	for k, v := range allRoleTargets {
-
-			// 	}
-			// }
 		}
 
 	},

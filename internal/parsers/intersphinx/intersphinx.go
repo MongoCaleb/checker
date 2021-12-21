@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type SphinxMap map[string]map[string]rst.RefTarget
+type SphinxMap map[string]rst.RefTarget
 
 func Intersphinx(buff []byte, domain string) SphinxMap {
 
@@ -40,19 +40,16 @@ func Intersphinx(buff []byte, domain string) SphinxMap {
 		return nil
 	}
 
-	outer := make(map[string]map[string]rst.RefTarget)
-	inner := make(map[string]rst.RefTarget)
-
-	outer[domain] = inner
+	res := make(map[string]rst.RefTarget)
 
 	for _, line := range strings.Split(string(parsed), "\n") {
 		if len(line) == 0 {
 			continue
 		}
 		lineSplit := strings.Split(line, " ")
-		inner[lineSplit[0]] = rst.RefTarget{Target: domain + lineSplit[3] + "%s", Type: "intersphinx"}
+		res[lineSplit[0]] = rst.RefTarget{Raw: lineSplit[3], Target: domain + lineSplit[3] + "%s", Type: "intersphinx"}
 	}
-	return outer
+	return res
 }
 
 func JoinSphinxes(input []SphinxMap) SphinxMap {

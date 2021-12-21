@@ -42,12 +42,7 @@ func TestRoleMap(t *testing.T) {
 
 	roleMap := NewRoleMap([]byte(roleMapInput))
 
-	if len(roleMap) != 2 {
-		t.Errorf("Expected 2 roles, got %d", len(roleMap))
-	}
+	expectedLinks := map[string]string{"rfc": "https://tools.ietf.org/html/%s", "wikipedia": "https://en.wikipedia.org/wiki/%s"}
 
-	expected := map[string]string{"rfc": "https://tools.ietf.org/html/%s", "wikipedia": "https://en.wikipedia.org/wiki/%s"}
-
-	assert.EqualValues(t, expected, roleMap, "Expected %v, got %v", expected, roleMap)
-
+	assert.EqualValues(t, expectedLinks, roleMap.Links, "Expected %v, got %v", expectedLinks, roleMap.Links)
 }

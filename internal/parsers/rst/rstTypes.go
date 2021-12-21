@@ -7,8 +7,8 @@ import (
 var (
 	constantRegex = regexp.MustCompile(`<\{\+([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)\+\}(\/[\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)>\x60`)
 	httpLinkRegex = regexp.MustCompile(`(https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
-	roleRegex     = regexp.MustCompile(`:([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*):(\x60([\w\s\-_\.\d\\\/=+!@#$%^&*(\)\[\]\\\<\>]*)\s|\x60([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*))<?([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)>?`)
-	localRefRegex = regexp.MustCompile(`\.\.\s_([\w\-_=+!@#$%^&(\)]+):`)
+	roleRegex     = regexp.MustCompile(`:([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*):(\x60([\w\s\-_\.\d\\\/=+!@#$%^&*(\)\[\]\\\<\>'\?]*)\s|\x60([\w\s\-_\.\d\\\/=+!@#$%^&*(\)'\?]*))<?([\w\s\-_\.\d\\\/=+!@#$%^&*(\)\{\}]*)>?`)
+	localRefRegex = regexp.MustCompile(`\.\.\s_([\w\d\-_=+!@#$%^&(\)\.]+):`)
 )
 
 type RstHTTPLink string
@@ -26,6 +26,7 @@ type RstConstant struct {
 type RefTarget struct {
 	Target string
 	Type   string
+	Raw    string
 }
 
 func parse(input []byte, re regexp.Regexp, fn func(matches []string)) {
@@ -84,7 +85,7 @@ func ParseForLocalRefs(input []byte) []RefTarget {
 	for _, match := range allIndexes {
 		innerMatches := localRefRegex.FindAllStringSubmatch(match, -1)
 		for _, match := range innerMatches {
-			localrefs = append(localrefs, RefTarget{Target: match[1], Type: "local"})
+			localrefs = append(localrefs, RefTarget{Raw: match[1], Target: match[1], Type: "local"})
 		}
 	}
 	return localrefs

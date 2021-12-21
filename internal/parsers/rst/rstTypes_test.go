@@ -35,6 +35,9 @@ func TestFindLocalRefs(t *testing.T) {
 			{Target: "bar", Type: "local"},
 			{Target: "baz", Type: "local"},
 		},
+	}, {
+		input:    ".. _version-4.1:",
+		expected: []RefTarget{{Raw: "version-4.1", Target: "version-4.1", Type: "local"}},
 	},
 	}
 
@@ -193,6 +196,9 @@ func TestRoleParser(t *testing.T) {
 	}, {
 		input:    []byte("here is a :ref:`fantastic`"),
 		expected: []RstRole{{Target: "fantastic", RoleType: "ref", Name: "ref"}},
+	}, {
+		input:    []byte(":ref:`What information does the MongoDB Compatibility table show? <mongodb-compatibility-table-about-node>`"),
+		expected: []RstRole{{Target: "mongodb-compatibility-table-about-node", RoleType: "ref", Name: "ref"}},
 	}}
 
 	for _, test := range cases {

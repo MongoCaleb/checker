@@ -5,20 +5,33 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type rawMap struct {
+type RawMap struct {
 	Roles map[string]interface{} `toml:"role"`
 }
 
-// RoleMap contains roles from rstSpec.toml
-type RoleMap map[string]string
+type RoleMap struct {
+	Links LinkRoleMap
+	Raw   RawMap
+}
 
-func NewRoleMap(input []byte) RoleMap {
+// LinkRoleMap contains roles from rstspec.toml
+type LinkRoleMap map[string]string
+
+// OtherRoleMap contains other roles from rstspec.toml, like guilabel
+type OtherRoleMap map[string]string
+
+func NewRoleMap(input []byte) *RoleMap {
 
 	// populate a raw role map that is map[string]interface{}
-	var rawmap rawMap
+	var rawmap RawMap
 	_, err := toml.Decode(string(input), &rawmap)
 	if err != nil {
 		log.Fatalf("error: %v", err)
+	}
+	var copyRaw RawMap
+	copyRaw.Roles = make(map[string]interface{}, len(rawmap.Roles))
+	for k, v := range rawmap.Roles {
+		copyRaw.Roles[k] = v
 	}
 
 	// filter out roles that aren't links, and convert to a RoleMap
@@ -35,16 +48,14 @@ func NewRoleMap(input []byte) RoleMap {
 		target := urlObj.(map[string]interface{})["link"]
 		rawmap.Roles[k] = target
 	}
-	roleMap := make(map[string]string, len(rawmap.Roles))
+	roleMap := make(LinkRoleMap, len(rawmap.Roles))
 	for k, v := range rawmap.Roles {
 		if v != nil {
 			roleMap[k] = v.(string)
 		}
 	}
-	return roleMap
-}
-
-func (r *RoleMap) Get(key string) (string, bool) {
-	val, ok := (*r)[key]
-	return val, ok
+	return &RoleMap{
+		Links: roleMap,
+		Raw:   copyRaw,
+	}
 }

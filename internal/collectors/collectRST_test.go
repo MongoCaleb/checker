@@ -132,7 +132,7 @@ func TestGatherRoles(t *testing.T) {
 		{Target: "/reference/operator/aggregation/group/", RoleType: "role", Name: "manual"}:                  "/source/fundamentals/aggregation.txt",
 		{Target: "/reference/operator/aggregation/match/", RoleType: "role", Name: "manual"}:                  "/source/fundamentals/aggregation.txt",
 		{Target: "/usage-examples", RoleType: "role", Name: "doc"}:                                            "/source/index.txt",
-		{Target: "What", RoleType: "role", Name: "doc"}:                                                       "/source/index.txt",
+		{Target: "/whats-new", RoleType: "role", Name: "doc"}:                                                 "/source/index.txt",
 		{Target: "classes/gridfsbucket.html#delete", RoleType: "role", Name: "node-api-4.0"}:                  "/source/fundamentals/gridfs.txt",
 		{Target: "classes/gridfsbucket.html#rename", RoleType: "role", Name: "node-api-4.0"}:                  "/source/fundamentals/gridfs.txt",
 		{Target: "gridfs-create-bucket", RoleType: "ref", Name: "ref"}:                                        "/source/fundamentals/gridfs.txt",
@@ -231,18 +231,18 @@ func TestGatherLocalRefs(t *testing.T) {
 	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "gridfs.txt"), []byte(grifsFile), 0644))
 
 	expected := map[rst.RefTarget]string{
-		{Target: "gridfs-create-bucket", Type: "local"}:        "/source/fundamentals/gridfs.txt",
-		{Target: "gridfs-delete-bucket", Type: "local"}:        "/source/fundamentals/gridfs.txt",
-		{Target: "gridfs-delete-files", Type: "local"}:         "/source/fundamentals/gridfs.txt",
-		{Target: "gridfs-download-files", Type: "local"}:       "/source/fundamentals/gridfs.txt",
-		{Target: "gridfs-rename-files", Type: "local"}:         "/source/fundamentals/gridfs.txt",
-		{Target: "gridfs-retrieve-file-info", Type: "local"}:   "/source/fundamentals/gridfs.txt",
-		{Target: "gridfs-upload-files", Type: "local"}:         "/source/fundamentals/gridfs.txt",
-		{Target: "nodejs-aggregation-overview", Type: "local"}: "/source/fundamentals/aggregation.txt",
+		{Raw: "gridfs-create-bucket", Target: "gridfs-create-bucket", Type: "local"}:               "/source/fundamentals/gridfs.txt",
+		{Raw: "gridfs-delete-bucket", Target: "gridfs-delete-bucket", Type: "local"}:               "/source/fundamentals/gridfs.txt",
+		{Raw: "gridfs-delete-files", Target: "gridfs-delete-files", Type: "local"}:                 "/source/fundamentals/gridfs.txt",
+		{Raw: "gridfs-download-files", Target: "gridfs-download-files", Type: "local"}:             "/source/fundamentals/gridfs.txt",
+		{Raw: "gridfs-rename-files", Target: "gridfs-rename-files", Type: "local"}:                 "/source/fundamentals/gridfs.txt",
+		{Raw: "gridfs-retrieve-file-info", Target: "gridfs-retrieve-file-info", Type: "local"}:     "/source/fundamentals/gridfs.txt",
+		{Raw: "gridfs-upload-files", Target: "gridfs-upload-files", Type: "local"}:                 "/source/fundamentals/gridfs.txt",
+		{Raw: "nodejs-aggregation-overview", Target: "nodejs-aggregation-overview", Type: "local"}: "/source/fundamentals/aggregation.txt",
 	}
 
 	actual := GatherLocalRefs(GatherFiles(basepath))
 
-	assert.EqualValues(t, expected, actual, "gatherConstants should return all constants in source directory")
+	assert.EqualValues(t, expected, actual, "GatherLocalRefs should return all local refs in source directory")
 
 }
