@@ -3,12 +3,14 @@ package rst
 import (
 	"regexp"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 var (
 	constantRegex = regexp.MustCompile(`<\{\+([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)\+\}(\/[\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)>\x60`)
 	httpLinkRegex = regexp.MustCompile(`(https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
-	roleRegex     = regexp.MustCompile(`:([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*):\x60([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)<?([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)>?`)
+	roleRegex     = regexp.MustCompile(`:([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*):(\x60([\w\s\-_\.\d\\\/=+!@#$%^&*(\)\[\]\\\<\>]*)\s|\x60([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*))<?([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)>?`)
 	localRefRegex = regexp.MustCompile(`\.\.\s_([\w\-_=+!@#$%^&(\)]+):`)
 )
 
@@ -49,6 +51,7 @@ func ParseForHTTPLinks(input []byte) []RstHTTPLink {
 func ParseForRoles(input []byte) []RstRole {
 	roles := make([]RstRole, 0)
 	parse(input, *roleRegex, func(matches []string) {
+		log.Info(matches)
 		roleType, name := "", ""
 		if matches[1] == "ref" {
 			roleType = "ref"
@@ -58,9 +61,9 @@ func ParseForRoles(input []byte) []RstRole {
 			name = matches[1]
 		}
 		if matches[3] == "" {
-			roles = append(roles, RstRole{Target: matches[2], RoleType: roleType, Name: name})
+			roles = append(roles, RstRole{Target: matches[4], RoleType: roleType, Name: name})
 		} else {
-			roles = append(roles, RstRole{Target: matches[3], RoleType: roleType, Name: name})
+			roles = append(roles, RstRole{Target: matches[5], RoleType: roleType, Name: name})
 		}
 	})
 	return roles

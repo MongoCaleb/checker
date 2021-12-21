@@ -20,29 +20,29 @@ var (
 func init() {
 	FS = iowrap.NewOsFs()
 	FSUtil = &iowrap.Afero{Fs: FS}
-	basepath, _ = os.Getwd()
 }
 
 func exists(path string) bool {
 
-	if _, err := FS.Stat(filepath.Join(basepath, path)); os.IsNotExist(err) {
+	if _, err := FS.Stat(path); os.IsNotExist(err) {
 		log.Errorf("%s does not exist", path)
 		return false
 	}
 	return true
 }
 
-func snootyTomlExists() bool {
-	return exists("snooty.toml")
+func snootyTomlExists(path string) bool {
+	return exists(filepath.Join(path, "snooty.toml"))
 }
 
-func sourceDirectoryExists() bool {
+func sourceDirectoryExists(path string) bool {
 
-	return exists("source")
+	return exists(filepath.Join(path, "source"))
 }
 
-func gatherFiles() []string {
-	if !snootyTomlExists() || !sourceDirectoryExists() {
+func GatherFiles(path string) []string {
+	basepath = path
+	if !snootyTomlExists(path) || !sourceDirectoryExists(path) {
 		log.Panic("snooty.toml or source directory does not exist")
 	}
 
@@ -72,34 +72,64 @@ func gather(files []string, fn func(filename string, data []byte)) {
 	}
 }
 
-func gatherRoles(files []string) map[string][]rst.RstRole {
-	roles := make(map[string][]rst.RstRole, len(files))
+type RstRoleMap map[rst.RstRole]string
+
+func GatherRoles(files []string) RstRoleMap {
+	roles := make(map[rst.RstRole]string, len(files))
 	gather(files, func(filename string, data []byte) {
-		roles[filename] = rst.ParseForRoles(data)
+		for _, role := range rst.ParseForRoles(data) {
+			roles[role] = filename
+		}
 	})
 	return roles
 }
 
-func gatherConstants(files []string) map[string][]rst.RstConstant {
-	consts := make(map[string][]rst.RstConstant, len(files))
+func (r *RstRoleMap) Get(key string) (*rst.RstRole, bool) {
+	for k := range *r {
+		if k.Name == key {
+			return &k, true
+		}
+	}
+	return nil, false
+}
+
+func GatherConstants(files []string) map[rst.RstConstant]string {
+	consts := make(map[rst.RstConstant]string, len(files))
 	gather(files, func(filename string, data []byte) {
-		consts[filename] = rst.ParseForConstants(data)
+		for _, con := range rst.ParseForConstants(data) {
+			consts[con] = filename
+		}
 	})
 	return consts
 }
 
-func gatherHTTPLinks(files []string) map[string][]rst.RstHTTPLink {
-	links := make(map[string][]rst.RstHTTPLink, len(files))
+func GatherHTTPLinks(files []string) map[rst.RstHTTPLink]string {
+	links := make(map[rst.RstHTTPLink]string, len(files))
 	gather(files, func(filename string, data []byte) {
-		links[filename] = rst.ParseForHTTPLinks(data)
+		for _, link := range rst.ParseForHTTPLinks(data) {
+			links[link] = filename
+		}
 	})
 	return links
 }
 
-func gatherLocalRefs(files []string) map[string][]rst.RefTarget {
-	refs := make(map[string][]rst.RefTarget, len(files))
+type RefTargetMap map[rst.RefTarget]string
+
+func GatherLocalRefs(files []string) RefTargetMap {
+	refs := make(map[rst.RefTarget]string, len(files))
 	gather(files, func(filename string, data []byte) {
-		refs[filename] = rst.ParseForLocalRefs(data)
+		for _, ref := range rst.ParseForLocalRefs(data) {
+			refs[ref] = filename
+		}
 	})
 	return refs
+}
+
+func (r *RefTargetMap) Get(ref *rst.RstRole) (*rst.RefTarget, bool) {
+	for k := range *r {
+		if k.Target == ref.Target {
+			return &k, true
+		}
+	}
+	return nil, false
 }

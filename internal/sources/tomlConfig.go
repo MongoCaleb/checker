@@ -15,9 +15,9 @@ type TomlConfig struct {
 	Intersphinx []string          `toml:"intersphinx"`
 }
 
-func NewTomlConfig(input string) (*TomlConfig, error) {
+func NewTomlConfig(input []byte) (*TomlConfig, error) {
 	var cfg TomlConfig
-	_, err := toml.Decode(input, &cfg)
+	_, err := toml.Decode(string(input), &cfg)
 	if err != nil {
 		return nil, err
 	}

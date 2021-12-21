@@ -1,4 +1,4 @@
-package sources
+package utils
 
 import (
 	"context"
@@ -30,7 +30,7 @@ func GetLatestSnootyParserTag() string {
 	return rstSpecBase + *latest + "/snooty/rstspec.toml"
 }
 
-func GetIntersphinxFile(input string) []byte {
+func GetNetworkFile(input string) []byte {
 	resp, err := http.Get(input)
 	if err != nil {
 		log.Panic(err)
@@ -42,4 +42,30 @@ func GetIntersphinxFile(input string) []byte {
 		log.Panic(err)
 	}
 	return body
+}
+
+func GetLocalFile(input string) []byte {
+	body, err := ioutil.ReadFile(input)
+	if err != nil {
+		log.Panic(err)
+	}
+	return body
+}
+
+func IsReachable(url string) bool {
+	response, errors := http.Get(url)
+
+	if errors != nil {
+		_, netErrors := http.Get("https://www.google.com")
+
+		if netErrors != nil {
+			log.Error("no internet\n")
+		}
+		return false
+	}
+
+	if response.StatusCode == 200 {
+		return true
+	}
+	return false
 }

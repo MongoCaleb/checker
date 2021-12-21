@@ -31,7 +31,7 @@ baz = "baz+{+foo+}"
 `
 
 func TestSnootyToml(t *testing.T) {
-	cfg, err := NewTomlConfig(tomlConfigInput)
+	cfg, err := NewTomlConfig([]byte(tomlConfigInput))
 	if err != nil {
 		t.Errorf("error parsing toml in test\n: %v", err)
 	}
