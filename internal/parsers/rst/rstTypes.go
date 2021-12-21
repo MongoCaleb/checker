@@ -2,9 +2,6 @@ package rst
 
 import (
 	"regexp"
-	"strings"
-
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -34,7 +31,7 @@ type RefTarget struct {
 func parse(input []byte, re regexp.Regexp, fn func(matches []string)) {
 	allFound := re.FindAllString(string(input), -1)
 	for _, match := range allFound {
-		for _, match := range re.FindAllStringSubmatch(strings.Join(strings.Fields(match), ""), -1) {
+		for _, match := range re.FindAllStringSubmatch(match, -1) {
 			fn(match)
 		}
 	}
@@ -51,7 +48,6 @@ func ParseForHTTPLinks(input []byte) []RstHTTPLink {
 func ParseForRoles(input []byte) []RstRole {
 	roles := make([]RstRole, 0)
 	parse(input, *roleRegex, func(matches []string) {
-		log.Info(matches)
 		roleType, name := "", ""
 		if matches[1] == "ref" {
 			roleType = "ref"
@@ -60,10 +56,10 @@ func ParseForRoles(input []byte) []RstRole {
 			roleType = "role"
 			name = matches[1]
 		}
-		if matches[3] == "" {
-			roles = append(roles, RstRole{Target: matches[4], RoleType: roleType, Name: name})
-		} else {
+		if matches[4] == "" {
 			roles = append(roles, RstRole{Target: matches[5], RoleType: roleType, Name: name})
+		} else {
+			roles = append(roles, RstRole{Target: matches[4], RoleType: roleType, Name: name})
 		}
 	})
 	return roles
