@@ -2,7 +2,6 @@ package intersphinx
 
 import (
 	"bytes"
-	"checker/internal/parsers/rst"
 	"compress/zlib"
 	"io/ioutil"
 	"log"
@@ -85,36 +84,38 @@ usage-examples std:doc -1 usage-examples/ Usage Examples`)
 	resp := Intersphinx(append(header, b.Bytes()...), "https://test.com/")
 
 	expected := SphinxMap{
-		"whats-new":      rst.RefTarget{Raw: "whats-new/", Target: "https://test.com/whats-new/%s", Type: "intersphinx"},
-		"compatibility":  rst.RefTarget{Raw: "compatibility/", Target: "https://test.com/compatibility/%s", Type: "intersphinx"},
-		"fundamentals":   rst.RefTarget{Raw: "fundamentals/", Target: "https://test.com/fundamentals/%s", Type: "intersphinx"},
-		"usage-examples": rst.RefTarget{Raw: "usage-examples/", Target: "https://test.com/usage-examples/%s", Type: "intersphinx"},
+		"whats-new":      true,
+		"compatibility":  true,
+		"fundamentals":   true,
+		"usage-examples": true,
 	}
 
 	assert.EqualValues(t, expected, resp, "Expected %v, got %v", expected, resp)
 }
 
 func TestJoinSphinxes(t *testing.T) {
-	input := []SphinxMap{{
-		"whats-new":         rst.RefTarget{Target: "https://test1.com/whats-new/%s", Type: "intersphinx"},
-		"compatibility":     rst.RefTarget{Target: "https://test1.com/compatibility/%s", Type: "intersphinx"},
-		"fundamentals":      rst.RefTarget{Target: "https://test1.com/fundamentals/%s", Type: "intersphinx"},
-		"usage-examples":    rst.RefTarget{Target: "https://test1.com/usage-examples/%s", Type: "intersphinx"},
-		"foowhats-new":      rst.RefTarget{Target: "https://test2.com/whats-new/%s", Type: "intersphinx"},
-		"foocompatibility":  rst.RefTarget{Target: "https://test2.com/compatibility/%s", Type: "intersphinx"},
-		"foofundamentals":   rst.RefTarget{Target: "https://test2.com/fundamentals/%s", Type: "intersphinx"},
-		"foousage-examples": rst.RefTarget{Target: "https://test2.com/usage-examples/%s", Type: "intersphinx"},
-	}}
+	input := []SphinxMap{
+		{
+			"whats-new":      true,
+			"compatibility":  true,
+			"fundamentals":   true,
+			"usage-examples": true,
+		}, {
+			"foowhats-new":      true,
+			"foocompatibility":  true,
+			"foofundamentals":   true,
+			"foousage-examples": true,
+		}}
 
 	expected := SphinxMap{
-		"whats-new":         rst.RefTarget{Target: "https://test1.com/whats-new/%s", Type: "intersphinx"},
-		"compatibility":     rst.RefTarget{Target: "https://test1.com/compatibility/%s", Type: "intersphinx"},
-		"fundamentals":      rst.RefTarget{Target: "https://test1.com/fundamentals/%s", Type: "intersphinx"},
-		"usage-examples":    rst.RefTarget{Target: "https://test1.com/usage-examples/%s", Type: "intersphinx"},
-		"foowhats-new":      rst.RefTarget{Target: "https://test2.com/whats-new/%s", Type: "intersphinx"},
-		"foocompatibility":  rst.RefTarget{Target: "https://test2.com/compatibility/%s", Type: "intersphinx"},
-		"foofundamentals":   rst.RefTarget{Target: "https://test2.com/fundamentals/%s", Type: "intersphinx"},
-		"foousage-examples": rst.RefTarget{Target: "https://test2.com/usage-examples/%s", Type: "intersphinx"},
+		"whats-new":         true,
+		"compatibility":     true,
+		"fundamentals":      true,
+		"usage-examples":    true,
+		"foowhats-new":      true,
+		"foocompatibility":  true,
+		"foofundamentals":   true,
+		"foousage-examples": true,
 	}
 
 	actual := JoinSphinxes(input)

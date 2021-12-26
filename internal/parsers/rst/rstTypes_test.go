@@ -18,37 +18,32 @@ func TestFindLocalRefs(t *testing.T) {
 		input:    ".. _:",
 		expected: []RefTarget{},
 	}, {
-		input: ".. _foo:",
-		expected: []RefTarget{
-			{Target: "foo", Type: "local"},
-		},
+		input:    ".. _foo:",
+		expected: []RefTarget{{Name: "foo"}},
 	}, {
-		input: ".. _foo:\n.. _bar:",
-		expected: []RefTarget{
-			{Target: "foo", Type: "local"},
-			{Target: "bar", Type: "local"},
-		},
+		input:    ".. _foo:\n.. _bar:",
+		expected: []RefTarget{{Name: "foo"}, {Name: "bar"}},
 	}, {
-		input: ".. _foo:\n.. _bar:\n\n\n\n\n\n.. _baz:",
-		expected: []RefTarget{
-			{Target: "foo", Type: "local"},
-			{Target: "bar", Type: "local"},
-			{Target: "baz", Type: "local"},
-		},
+		input:    ".. _foo:\n.. _bar:\n\n\n\n\n\n.. _baz:",
+		expected: []RefTarget{{Name: "foo"}, {Name: "bar"}, {Name: "baz"}},
 	}, {
 		input:    ".. _version-4.1:",
-		expected: []RefTarget{{Raw: "version-4.1", Target: "version-4.1", Type: "local"}},
+		expected: []RefTarget{{Name: "version-4.1"}},
+	}, {
+		input:    ".. _mongodb-compatibility-table-about-{+driver+}:",
+		expected: []RefTarget{{Name: "mongodb-compatibility-table-about-{+driver+}"}},
+	}, {
+		input:    "    - ..  _unionWith-coll:",
+		expected: []RefTarget{{Name: "unionWith-coll"}},
+	}, {
+		input:    ".. _faq-storage limit:",
+		expected: []RefTarget{{Name: "faq-storage limit"}},
 	},
 	}
 
 	for _, c := range cases {
 		actual := ParseForLocalRefs([]byte(c.input))
-		assert.Equal(t, len(c.expected), len(actual), "FindLocalRefs(%q) should return %d refs, got %d", c.input, len(c.expected), len(actual))
-
-		for i, ref := range actual {
-			assert.Equal(t, c.expected[i].Target, ref.Target, "FindLocalRefs(%q) should return ref %d as %q, got %q", c.input, i, c.expected, ref)
-			assert.Equal(t, c.expected[i].Type, ref.Type, "FindLocalRefs(%q) should return ref %d as %q, got %q", c.input, i, c.expected, ref)
-		}
+		assert.ElementsMatch(t, c.expected, actual, "ParseForLocalRefs(%q) should return %v, got %v", c.input, c.expected, actual)
 	}
 
 }
@@ -164,30 +159,6 @@ func TestRoleParser(t *testing.T) {
 		input:    []byte("here is a :ref:`fantastic` here is another :ref:`2 <mediocre-fantastic>` here is a :ref:`\n<not_great-fantastic>`"),
 		expected: []RstRole{{Target: "fantastic", RoleType: "ref", Name: "ref"}, {Target: "mediocre-fantastic", RoleType: "ref", Name: "ref"}, {Target: "not_great-fantastic", RoleType: "ref", Name: "ref"}},
 	}, {
-		input:    []byte(":node-api:`foo </AggregationCursor.html>`"),
-		expected: []RstRole{{Target: "/AggregationCursor.html", RoleType: "role", Name: "node-api"}},
-	}, {
-		input:    []byte(":node-api:`foo <AggregationCursorz.html>`"),
-		expected: []RstRole{{Target: "AggregationCursorz.html", RoleType: "role", Name: "node-api"}},
-	}, {
-		input:    []byte(":node-api:`foo <AggregationCursor.html>`"),
-		expected: []RstRole{{Target: "AggregationCursor.html", RoleType: "role", Name: "node-api"}},
-	}, {
-		input:    []byte("This is a :ref:`valid atlas ref <connect-to-your-cluster>`"),
-		expected: []RstRole{{Target: "connect-to-your-cluster", RoleType: "ref", Name: "ref"}},
-	}, {
-		input:    []byte("This is a :ref:`valid server ref <replica-set-read-preference-behavior>`"),
-		expected: []RstRole{{Target: "replica-set-read-preference-behavior", RoleType: "ref", Name: "ref"}},
-	}, {
-		input:    []byte("This is an :ref:`nvalid ref <invalid_ref_sucka-fish>`"),
-		expected: []RstRole{{Target: "invalid_ref_sucka-fish", RoleType: "ref", Name: "ref"}},
-	}, {
-		input:    []byte("This is a `constant link that should fail <{+api+}/flibbertypoo>`__"),
-		expected: []RstRole{},
-	}, {
-		input:    []byte("This is a `constant link that should succeed <{+api+}/classes/AggregationCursor.html>`__"),
-		expected: []RstRole{},
-	}, {
 		input:    []byte("Here is one `constant link <{+api+}/One.html>`__ and a second `constant link <{+api+}/Two.html>`__"),
 		expected: []RstRole{},
 	}, {
@@ -199,6 +170,15 @@ func TestRoleParser(t *testing.T) {
 	}, {
 		input:    []byte(":ref:`What information does the MongoDB Compatibility table show? <mongodb-compatibility-table-about-node>`"),
 		expected: []RstRole{{Target: "mongodb-compatibility-table-about-node", RoleType: "ref", Name: "ref"}},
+	}, {
+		input:    []byte("- :v4.0:`https://docs.mongodb.com/v4.0 </tutorial/restore-sharded-cluster>`"),
+		expected: []RstRole{{Target: "/tutorial/restore-sharded-cluster", RoleType: "role", Name: "v4.0"}},
+	}, {
+		input:    []byte(":doc:`Internal Authentication</core/security-internal-authentication>`."),
+		expected: []RstRole{{Target: "/core/security-internal-authentication", RoleType: "role", Name: "doc"}},
+	}, {
+		input:    []byte(":authaction:`find`/:authaction:`update`"),
+		expected: []RstRole{{Target: "find", RoleType: "role", Name: "authaction"}, {Target: "update", RoleType: "role", Name: "authaction"}},
 	}}
 
 	for _, test := range cases {
@@ -231,5 +211,41 @@ func TestFindsSharedIncludes(t *testing.T) {
 	for _, test := range cases {
 		got := ParseForSharedIncludes(test.input)
 		assert.ElementsMatch(t, test.expected, got, "ParseForSharedIncludes(%q) should return %v, got %v", test.input, test.expected, got)
+	}
+}
+
+func TestFindDirectives(t *testing.T) {
+	cases := []struct {
+		input    []byte
+		expected []RstDirective
+	}{{
+		input:    []byte(""),
+		expected: []RstDirective{},
+	}, {
+		input:    []byte(".. code-block::"),
+		expected: []RstDirective{},
+	}, {
+		input:    []byte(".. important::"),
+		expected: []RstDirective{},
+	}, {
+		input:    []byte(".. include:: /includes/foo.txt"),
+		expected: []RstDirective{{Name: "include", Target: "/includes/foo.txt"}},
+	}, {
+		input:    []byte(".. sharedinclude:: dbx/about-compatibility.rst"),
+		expected: []RstDirective{{Name: "sharedinclude", Target: "dbx/about-compatibility.rst"}},
+	}, {
+		input:    []byte(".. serverstatus:: metrics.repl.apply.batches.totalMillis"),
+		expected: []RstDirective{{Name: "serverstatus", Target: "metrics.repl.apply.batches.totalMillis"}},
+	}, {
+		input:    []byte(".. method:: getMemInfo()"),
+		expected: []RstDirective{{Name: "method", Target: "getMemInfo()"}},
+	}, {
+		input:    []byte(".. method:: sh.removeShardTag(shard, tag)"),
+		expected: []RstDirective{{Name: "method", Target: "sh.removeShardTag(shard, tag)"}},
+	}}
+
+	for _, test := range cases {
+		got := ParseForDirectives(test.input)
+		assert.ElementsMatch(t, test.expected, got, "ParseForDirectives(%q) should return %v, got %v", test.input, test.expected, got)
 	}
 }

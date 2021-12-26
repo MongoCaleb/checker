@@ -28,8 +28,10 @@ import (
 	"checker/internal/sources"
 	"checker/internal/utils"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -52,7 +54,17 @@ all links are checked for validity.`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
+
+		f, err := os.OpenFile("log.out", os.O_WRONLY|os.O_CREATE, 0755)
+		if err != nil {
+			panic(err)
+		}
+		if err := os.Truncate("log.out", 0); err != nil {
+			log.Panic(err)
+		}
+		log.SetOutput(f)
 		log.SetLevel(log.DebugLevel)
+		start := time.Now()
 		type intersphinxResult struct {
 			domain string
 			file   []byte
@@ -89,12 +101,27 @@ all links are checked for validity.`,
 
 		sphinxMap := intersphinx.JoinSphinxes(intersphinxes)
 		files := collectors.GatherFiles(basepath)
+
+		allShared := collectors.GatherSharedIncludes(files)
+
+		sharedRefs := make(collectors.RstRoleMap)
+		sharedLocals := make(collectors.RefTargetMap)
+
+		for _, share := range allShared {
+			sharedFile := utils.GetNetworkFile(projectCfg.SharedPath + share.Path)
+			sharedRefs.Union(collectors.GatherSharedRefs(sharedFile, *projectCfg))
+			sharedLocals.Union(collectors.GatherSharedLocalRefs(sharedFile, *projectCfg))
+		}
+
 		allConstants := collectors.GatherConstants(files)
 		allRoleTargets := collectors.GatherRoles(files)
 		allHTTPLinks := collectors.GatherHTTPLinks(files)
-		allLocalRefs := collectors.GatherLocalRefs(files)
+		allLocalRefs := collectors.GatherLocalRefs(files).SSLtoTLS()
 
-		log.Debug(allLocalRefs)
+		allRoleTargets.Union(sharedRefs)
+		allLocalRefs.Union(sharedLocals)
+
+		allRoleTargets = allRoleTargets.ConvertConstantRefs(*projectCfg)
 
 		for con, filename := range allConstants {
 			if _, ok := projectCfg.Constants[con.Name]; !ok {
@@ -102,62 +129,127 @@ all links are checked for validity.`,
 			}
 			testCon := rst.RstConstant{Name: con.Name, Target: projectCfg.Constants[filename] + con.Name}
 			if testCon.IsHTTPLink() {
-				allHTTPLinks[rst.RstHTTPLink(con.Target)] = filename
+				allHTTPLinks[rst.RstHTTPLink(testCon.Target)] = filename
 			}
 		}
+
 		checkedUrls := sync.Map{}
 		var wgValidate sync.WaitGroup
 		workStack := make([]func(), 0)
 		rstSpecRoles := sources.NewRoleMap(utils.GetNetworkFile(utils.GetLatestSnootyParserTag()))
-		for role, filename := range allRoleTargets {
-			if role.RoleType == "role" {
-				switch role.Name {
-				case "doc":
-					found := false
-					for _, f := range files {
-						if strings.Contains(f, role.Target) {
-							found = true
-							break
-						}
-					}
-					if !found {
-						log.Errorf("in %s: %s is not a valid file found in this docset", filename, role)
-					}
-				default:
-					if _, ok := rstSpecRoles.Links[role.Name]; !ok {
-						if _, ok := rstSpecRoles.Raw.Roles[role.Name]; !ok {
-							log.Errorf("in %s: %s is not a valid role", filename, role)
-						}
-						continue
-					}
-					url := fmt.Sprintf(rstSpecRoles.Links[role.Name], role.Target)
-					errmsg := fmt.Sprintf("in %s: interpeted url %s from  %+v was not valid", filename, url, role)
-					workFunc := func() {
-						defer wgValidate.Done()
-						wgValidate.Add(1)
-						if _, ok := checkedUrls.Load(url); !ok {
-							checkedUrls.Store(url, true)
-							if !utils.IsReachable(url) {
-								log.Error(errmsg)
-							}
-						}
-					}
-					workStack = append(workStack, workFunc)
+
+		// limit concurrency to 5
+		semaphore := make(chan struct{}, 5)
+
+		// have a max rate of 500/sec
+		rate := make(chan struct{}, 500)
+		for i := 0; i < cap(rate); i++ {
+			rate <- struct{}{}
+		}
+
+		// leaky bucket
+		go func() {
+			ticker := time.NewTicker(100 * time.Millisecond)
+			defer ticker.Stop()
+			for range ticker.C {
+				_, ok := <-rate
+				// if this isn't going to run indefinitely, signal
+				// this to return by closing the rate channel.
+				if !ok {
+					return
 				}
 			}
-			if role.RoleType == "ref" {
+		}()
+
+		for role, filename := range allRoleTargets {
+			switch role.Name {
+			case "ref":
 				if _, ok := sphinxMap[role.Target]; !ok {
 					if _, ok := allLocalRefs.Get(&role); !ok {
 						log.Errorf("in %s: %+v is not a valid ref", filename, role)
 					}
 				}
+			case "doc":
+				found := false
+				for _, f := range files {
+					if matched, _ := regexp.Match(strings.TrimSuffix(role.Target, "/"), []byte(f)); matched {
+						found = true
+						break
+					}
+				}
+				if !found {
+					log.Errorf("in %s: %s is not a valid file found in this docset", filename, role)
+				}
+
+			case "py:meth":
+				if _, ok := sphinxMap[role.Target]; !ok {
+					if _, ok := allLocalRefs.Get(&role); !ok {
+						log.Errorf("in %s: %+v is not a valid ref", filename, role)
+					}
+				}
+			case "py:class":
+				if _, ok := sphinxMap[role.Target]; !ok {
+					if _, ok := allLocalRefs.Get(&role); !ok {
+						log.Errorf("in %s: %+v is not a valid ref", filename, role)
+					}
+				}
+			default:
+				if _, ok := rstSpecRoles.Roles[role.Name]; !ok {
+					if _, ok := rstSpecRoles.RawRoles[role.Name]; !ok {
+						if _, ok := rstSpecRoles.RstObjects[role.Name]; !ok {
+							log.Errorf("in %s: %s is not a valid role", filename, role)
+						}
+					}
+					continue
+				}
+				url := fmt.Sprintf(rstSpecRoles.Roles[role.Name], role.Target)
+				errmsg := fmt.Sprintf("in %s: interpeted url %s from  %+v was not valid", filename, url, role)
+				workFunc := func() {
+					defer wgValidate.Done()
+					rate <- struct{}{}
+					semaphore <- struct{}{}
+					defer func() {
+						<-semaphore
+					}()
+					wgValidate.Add(1)
+					if _, ok := checkedUrls.Load(url); !ok {
+						checkedUrls.Store(url, true)
+						if !utils.IsReachable(url) {
+							log.Error(errmsg)
+						}
+					}
+				}
+				workStack = append(workStack, workFunc)
 			}
-			for _, f := range workStack {
-				f()
-			}
-			wgValidate.Wait()
 		}
 
+		for link, filename := range allHTTPLinks {
+			workStack = append(workStack, func() {
+				defer wgValidate.Done()
+				rate <- struct{}{}
+				semaphore <- struct{}{}
+				defer func() {
+					<-semaphore
+				}()
+				wgValidate.Add(1)
+				if _, ok := checkedUrls.Load(link); !ok {
+					checkedUrls.Store(link, true)
+					if !utils.IsReachable(string(link)) {
+						log.Errorf("in %s: %s is not a valid http link", filename, link)
+					}
+				}
+			})
+		}
+		duration := time.Since(start)
+		log.Info(duration)
+		// os.Exit(0)
+		networkStart := time.Now()
+		log.Info("workstack length: ", len(workStack))
+		// for _, f := range workStack {
+		// 	go f()
+		// }
+		wgValidate.Wait()
+		log.Info(time.Since(networkStart))
 	},
 }
 

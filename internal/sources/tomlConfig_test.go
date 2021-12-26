@@ -15,6 +15,8 @@ toc_landing_pages = [
     "/usage-examples"
 ]
 
+sharedinclude_root = "https://raw.githubusercontent.com/10gen/docs-shared/main/"
+
 intersphinx = [
   "https://docs.mongodb.com/manual/objects.inv",
   "https://docs.atlas.mongodb.com/objects.inv",
@@ -41,6 +43,7 @@ func TestSnootyToml(t *testing.T) {
 	}
 	assert.Equal(t, "this is a test", cfg.Name, "expected name to be 'go', got %s\n", cfg.Name)
 	assert.Equal(t, "TEST", cfg.Title, "expected title to be 'TEST', got %s\n", cfg.Title)
+	assert.Equal(t, "https://raw.githubusercontent.com/10gen/docs-shared/main/", cfg.SharedPath, "expected sharedinclude_root to be 'https://raw.githubusercontent.com/10gen/docs-shared/main/', got %s\n", cfg.SharedPath)
 	intersphinxes := []string{"https://docs.mongodb.com/manual/objects.inv", "https://docs.atlas.mongodb.com/objects.inv"}
 	assert.ElementsMatch(t, intersphinxes, cfg.Intersphinx, "expected intersphinxes to be %v, got %v\n", intersphinxes, cfg.Intersphinx)
 	constants := map[string]string{

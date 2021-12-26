@@ -4,6 +4,7 @@ import (
 	"context"
 	"io/ioutil"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/google/go-github/v41/github"
@@ -13,6 +14,8 @@ import (
 const (
 	rstSpecBase = "https://raw.githubusercontent.com/mongodb/snooty-parser/"
 )
+
+var httpLinkRegex = regexp.MustCompile(`(https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
 
 func GetLatestSnootyParserTag() string {
 	ghClient := github.NewClient(nil)
@@ -33,7 +36,7 @@ func GetLatestSnootyParserTag() string {
 func GetNetworkFile(input string) []byte {
 	resp, err := http.Get(input)
 	if err != nil {
-		log.Panic(err)
+		log.Panicf("Could not get file %s: ", input, err)
 	}
 	defer resp.Body.Close()
 
@@ -52,15 +55,17 @@ func GetLocalFile(input string) []byte {
 	return body
 }
 
+func IsHTTPLink(input string) bool {
+	return httpLinkRegex.MatchString(input)
+}
+
 func IsReachable(url string) bool {
+
 	response, errors := http.Get(url)
 
 	if errors != nil {
-		_, netErrors := http.Get("https://www.google.com")
-
-		if netErrors != nil {
-			log.Error("no internet\n")
-		}
+		log.Debug(url)
+		log.Error(errors)
 		return false
 	}
 

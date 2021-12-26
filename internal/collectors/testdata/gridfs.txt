@@ -276,3 +276,4 @@ Additional Resources
 - `Runnable example <https://mongodb.github.io/node-mongodb-native/3.6/tutorials/gridfs/streaming/>`__
   from the Node driver version 3.6 documentation
 
+.. sharedinclude:: shared-content-ref-test/ref-test.rst

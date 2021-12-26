@@ -2,6 +2,7 @@ package collectors
 
 import (
 	"checker/internal/parsers/rst"
+	"checker/internal/sources"
 	_ "embed"
 	"io"
 	"os"
@@ -15,13 +16,22 @@ import (
 
 var (
 	//go:embed testdata/index.txt
-	indexFile string
+	indexFile []byte
 
 	//go:embed testdata/aggregation.txt
-	aggregationsFile string
+	aggregationsFile []byte
 
 	//go:embed testdata/gridfs.txt
-	grifsFile string
+	grifsFile []byte
+
+	//go:embed testdata/compatibility.txt
+	compatibilityFile []byte
+
+	//go:embed testdata/about-compatibility.rst
+	sharedFile []byte
+
+	//go:embed testdata/snooty.toml
+	snootyToml []byte
 )
 
 func init() {
@@ -112,7 +122,6 @@ func TestGatherRoles(t *testing.T) {
 	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "gridfs.txt"), []byte(grifsFile), 0644))
 
 	expected := map[rst.RstRole]string{
-		{Target: "/classes/gridfsbucket.html#drop", RoleType: "role", Name: "node-api-4.0"}:                   "/source/fundamentals/gridfs.txt",
 		{Target: "/compatibility", RoleType: "role", Name: "doc"}:                                             "/source/index.txt",
 		{Target: "/core/aggregation-pipeline-limits/", RoleType: "role", Name: "manual"}:                      "/source/fundamentals/aggregation.txt",
 		{Target: "/core/aggregation-pipeline/", RoleType: "role", Name: "manual"}:                             "/source/fundamentals/aggregation.txt",
@@ -133,8 +142,6 @@ func TestGatherRoles(t *testing.T) {
 		{Target: "/reference/operator/aggregation/match/", RoleType: "role", Name: "manual"}:                  "/source/fundamentals/aggregation.txt",
 		{Target: "/usage-examples", RoleType: "role", Name: "doc"}:                                            "/source/index.txt",
 		{Target: "/whats-new", RoleType: "role", Name: "doc"}:                                                 "/source/index.txt",
-		{Target: "classes/gridfsbucket.html#delete", RoleType: "role", Name: "node-api-4.0"}:                  "/source/fundamentals/gridfs.txt",
-		{Target: "classes/gridfsbucket.html#rename", RoleType: "role", Name: "node-api-4.0"}:                  "/source/fundamentals/gridfs.txt",
 		{Target: "gridfs-create-bucket", RoleType: "ref", Name: "ref"}:                                        "/source/fundamentals/gridfs.txt",
 		{Target: "gridfs-delete-bucket", RoleType: "ref", Name: "ref"}:                                        "/source/fundamentals/gridfs.txt",
 		{Target: "gridfs-delete-files", RoleType: "ref", Name: "ref"}:                                         "/source/fundamentals/gridfs.txt",
@@ -163,14 +170,14 @@ func TestRstRoleMapGet(t *testing.T) {
 	}
 
 	localRefs := RefTargetMap{
-		{Target: "gridfs-create-bucket", Type: "local"}:        "/source/fundamentals/gridfs.txt",
-		{Target: "gridfs-delete-bucket", Type: "local"}:        "/source/fundamentals/gridfs.txt",
-		{Target: "gridfs-delete-files", Type: "local"}:         "/source/fundamentals/gridfs.txt",
-		{Target: "gridfs-download-files", Type: "local"}:       "/source/fundamentals/gridfs.txt",
-		{Target: "gridfs-rename-files", Type: "local"}:         "/source/fundamentals/gridfs.txt",
-		{Target: "gridfs-retrieve-file-info", Type: "local"}:   "/source/fundamentals/gridfs.txt",
-		{Target: "gridfs-upload-files", Type: "local"}:         "/source/fundamentals/gridfs.txt",
-		{Target: "nodejs-aggregation-overview", Type: "local"}: "/source/fundamentals/aggregation.txt",
+		{Name: "gridfs-create-bucket"}:        "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-delete-bucket"}:        "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-delete-files"}:         "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-download-files"}:       "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-rename-files"}:         "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-retrieve-file-info"}:   "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-upload-files"}:         "/source/fundamentals/gridfs.txt",
+		{Name: "nodejs-aggregation-overview"}: "/source/fundamentals/aggregation.txt",
 	}
 	for _, target := range targets {
 		_, ok := localRefs.Get(&target)
@@ -231,18 +238,68 @@ func TestGatherLocalRefs(t *testing.T) {
 	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "gridfs.txt"), []byte(grifsFile), 0644))
 
 	expected := RefTargetMap{
-		{Raw: "gridfs-create-bucket", Target: "gridfs-create-bucket", Type: "local"}:               "/source/fundamentals/gridfs.txt",
-		{Raw: "gridfs-delete-bucket", Target: "gridfs-delete-bucket", Type: "local"}:               "/source/fundamentals/gridfs.txt",
-		{Raw: "gridfs-delete-files", Target: "gridfs-delete-files", Type: "local"}:                 "/source/fundamentals/gridfs.txt",
-		{Raw: "gridfs-download-files", Target: "gridfs-download-files", Type: "local"}:             "/source/fundamentals/gridfs.txt",
-		{Raw: "gridfs-rename-files", Target: "gridfs-rename-files", Type: "local"}:                 "/source/fundamentals/gridfs.txt",
-		{Raw: "gridfs-retrieve-file-info", Target: "gridfs-retrieve-file-info", Type: "local"}:     "/source/fundamentals/gridfs.txt",
-		{Raw: "gridfs-upload-files", Target: "gridfs-upload-files", Type: "local"}:                 "/source/fundamentals/gridfs.txt",
-		{Raw: "nodejs-aggregation-overview", Target: "nodejs-aggregation-overview", Type: "local"}: "/source/fundamentals/aggregation.txt",
+		{Name: "gridfs-create-bucket"}:        "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-delete-bucket"}:        "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-delete-files"}:         "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-download-files"}:       "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-rename-files"}:         "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-retrieve-file-info"}:   "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-upload-files"}:         "/source/fundamentals/gridfs.txt",
+		{Name: "nodejs-aggregation-overview"}: "/source/fundamentals/aggregation.txt",
 	}
 
 	actual := GatherLocalRefs(GatherFiles(basepath))
 
 	assert.EqualValues(t, expected, actual, "GatherLocalRefs should return all local refs in source directory")
+
+}
+
+func TestGatherSharedIncludes(t *testing.T) {
+	defer afterTest(t)
+
+	check(FS.MkdirAll(filepath.Join(basepath, "source"), 0755))
+	check(FS.MkdirAll(filepath.Join(basepath, "source", "fundamentals"), 0755))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "snooty.toml"), []byte("test"), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "aggregation.txt"), aggregationsFile, 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "gridfs.txt"), grifsFile, 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "compatibility.txt"), compatibilityFile, 0644))
+
+	expected := []rst.SharedInclude{{Path: "dbx/about-compatibility.rst"}, {Path: "shared-content-ref-test/ref-test.rst"}}
+
+	assert.ElementsMatch(t, expected, GatherSharedIncludes(GatherFiles(basepath)), "GatherSharedIncludes should return all shared includes in source directory")
+
+}
+
+func TestGatherSharedRefs(t *testing.T) {
+	expected := RstRoleMap{
+		{Target: "mongodb-compatibility-table-about-node", RoleType: "ref", Name: "ref"}:  "shared",
+		{Target: "language-compatibility-table-about-node", RoleType: "ref", Name: "ref"}: "shared",
+	}
+
+	sampleCfg, err := sources.NewTomlConfig(snootyToml)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	actual := GatherSharedRefs(sharedFile, *sampleCfg)
+
+	assert.EqualValues(t, expected, actual, "GatherSharedRefs should return all shared refs in source directory")
+
+}
+
+func TestGatherSharedLocalRefs(t *testing.T) {
+	expected := RefTargetMap{
+		{Name: "mongodb-compatibility-table-about-node"}:  "shared",
+		{Name: "language-compatibility-table-about-node"}: "shared",
+	}
+
+	sampleCfg, err := sources.NewTomlConfig(snootyToml)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	actual := GatherSharedLocalRefs(sharedFile, *sampleCfg)
+
+	assert.EqualValues(t, expected, actual, "GatherSharedLocalRefs should return all shared refs in source directory")
 
 }

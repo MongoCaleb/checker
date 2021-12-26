@@ -1,0 +1,28 @@
+.. contents:: On this page
+   :local:
+   :backlinks: none
+   :depth: 2
+   :class: singlecol
+
+=============
+Compatibility
+=============
+
+MongoDB Compatibility
+---------------------
+
+:ref:`What information does the MongoDB Compatibility table show? <mongodb-compatibility-table-about-node>`
+
+.. include:: /includes/mongodb-compatibility-table-node.rst
+
+Language Compatibility
+----------------------
+
+:ref:`What information does the Language Compatibility table show? <language-compatibility-table-about-node>`
+
+.. include:: /includes/language-compatibility-table-node.rst
+
+About Compatibility Tables
+--------------------------
+
+.. sharedinclude:: dbx/about-compatibility.rst

@@ -13,6 +13,7 @@ type TomlConfig struct {
 	Title       string            `toml:"title"`
 	Constants   map[string]string `toml:"constants"`
 	Intersphinx []string          `toml:"intersphinx"`
+	SharedPath  string            `toml:"sharedinclude_root"`
 }
 
 func NewTomlConfig(input []byte) (*TomlConfig, error) {

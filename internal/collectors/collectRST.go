@@ -2,8 +2,10 @@ package collectors
 
 import (
 	"checker/internal/parsers/rst"
+	"checker/internal/sources"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	iowrap "github.com/spf13/afero"
@@ -12,9 +14,10 @@ import (
 )
 
 var (
-	FS       iowrap.Fs
-	FSUtil   *iowrap.Afero
-	basepath string
+	FS                  iowrap.Fs
+	FSUtil              *iowrap.Afero
+	basepath            string
+	sharedConstantRegex = regexp.MustCompile(`\{\+([[:alnum:]\p{P}\p{S}]+)\+\}`)
 )
 
 func init() {
@@ -48,8 +51,21 @@ func GatherFiles(path string) []string {
 
 	files := make([]string, 0)
 
+	exts := []string{".rst", ".txt", ".yml", ".yaml"}
+	validExt := func(s string) bool {
+		for _, ext := range exts {
+			if strings.Contains(s, ext) {
+				return true
+			}
+		}
+		return false
+	}
+
 	err := FSUtil.Walk(basepath, func(path string, info os.FileInfo, err error) error {
-		if filepath.Ext(path) == ".rst" || filepath.Ext(path) == ".txt" {
+		if info.IsDir() && info.Name() == "draft" {
+			return filepath.SkipDir
+		}
+		if validExt(filepath.Ext(path)) {
 			files = append(files, path)
 		}
 		return nil
@@ -93,6 +109,12 @@ func (r *RstRoleMap) Get(key string) (*rst.RstRole, bool) {
 	return nil, false
 }
 
+func (r *RstRoleMap) Union(other RstRoleMap) {
+	for k, v := range other {
+		(*r)[k] = v
+	}
+}
+
 func GatherConstants(files []string) map[rst.RstConstant]string {
 	consts := make(map[rst.RstConstant]string, len(files))
 	gather(files, func(filename string, data []byte) {
@@ -127,9 +149,77 @@ func GatherLocalRefs(files []string) RefTargetMap {
 
 func (r *RefTargetMap) Get(ref *rst.RstRole) (*rst.RefTarget, bool) {
 	for k := range *r {
-		if k.Target == ref.Target {
+		if k.Name == ref.Target {
 			return &k, true
 		}
 	}
 	return nil, false
+}
+
+func (r *RefTargetMap) Union(other RefTargetMap) {
+	for k, v := range other {
+		(*r)[k] = v
+	}
+}
+func (r RefTargetMap) SSLtoTLS() RefTargetMap {
+	for k, v := range r {
+		if strings.Contains(k.Name, "ssl") {
+			tlsK := rst.RefTarget{Name: strings.Replace(k.Name, "ssl", "tls", 1)}
+			r[tlsK] = v
+		}
+	}
+	return r
+}
+
+func GatherSharedIncludes(files []string) []rst.SharedInclude {
+	includes := make([]rst.SharedInclude, 0)
+	gather(files, func(filename string, data []byte) {
+		for _, include := range rst.ParseForSharedIncludes(data) {
+			includes = append(includes, include)
+		}
+	})
+	return includes
+}
+
+func GatherSharedRefs(input []byte, defs sources.TomlConfig) RstRoleMap {
+	roles := make(RstRoleMap, len(input))
+	for _, role := range rst.ParseForRoles(input) {
+		allFound := sharedConstantRegex.FindAllString(role.Target, -1)
+		for _, match := range allFound {
+			for _, inner := range sharedConstantRegex.FindAllStringSubmatch(match, -1) {
+				role.Target = strings.Replace(role.Target, inner[0], defs.Constants[inner[1]], 1)
+			}
+		}
+		roles[role] = "shared"
+	}
+	return roles
+}
+
+func GatherSharedLocalRefs(input []byte, defs sources.TomlConfig) RefTargetMap {
+	refs := make(map[rst.RefTarget]string, len(input))
+	for _, ref := range rst.ParseForLocalRefs(input) {
+		allFound := sharedConstantRegex.FindAllString(ref.Name, -1)
+		for _, match := range allFound {
+			for _, inner := range sharedConstantRegex.FindAllStringSubmatch(match, -1) {
+				ref.Name = strings.Replace(ref.Name, inner[0], defs.Constants[inner[1]], 1)
+			}
+		}
+		refs[ref] = "shared"
+	}
+	return refs
+}
+
+func (r RstRoleMap) ConvertConstantRefs(defs sources.TomlConfig) RstRoleMap {
+	for k, v := range r {
+		allFound := sharedConstantRegex.FindAllString(k.Target, -1)
+		for _, match := range allFound {
+			for _, inner := range sharedConstantRegex.FindAllStringSubmatch(match, -1) {
+				delete(r, k)
+				k.Target = strings.Replace(k.Target, inner[0], defs.Constants[inner[1]], 1)
+				k.Name = strings.Replace(k.Name, inner[0], defs.Constants[inner[1]], 1)
+				r[k] = v
+			}
+		}
+	}
+	return r
 }

@@ -2,7 +2,6 @@ package intersphinx
 
 import (
 	"bytes"
-	"checker/internal/parsers/rst"
 	"compress/zlib"
 	"io/ioutil"
 	"strings"
@@ -10,7 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type SphinxMap map[string]rst.RefTarget
+type SphinxMap map[string]bool
 
 func Intersphinx(buff []byte, domain string) SphinxMap {
 
@@ -40,14 +39,14 @@ func Intersphinx(buff []byte, domain string) SphinxMap {
 		return nil
 	}
 
-	res := make(map[string]rst.RefTarget)
+	res := make(map[string]bool)
 
 	for _, line := range strings.Split(string(parsed), "\n") {
 		if len(line) == 0 {
 			continue
 		}
 		lineSplit := strings.Split(line, " ")
-		res[lineSplit[0]] = rst.RefTarget{Raw: lineSplit[3], Target: domain + lineSplit[3] + "%s", Type: "intersphinx"}
+		res[lineSplit[0]] = true
 	}
 	return res
 }
