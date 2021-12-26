@@ -174,9 +174,7 @@ func (r RefTargetMap) SSLtoTLS() RefTargetMap {
 func GatherSharedIncludes(files []string) []rst.SharedInclude {
 	includes := make([]rst.SharedInclude, 0)
 	gather(files, func(filename string, data []byte) {
-		for _, include := range rst.ParseForSharedIncludes(data) {
-			includes = append(includes, include)
-		}
+		includes = append(includes, rst.ParseForSharedIncludes(data)...)
 	})
 	return includes
 }

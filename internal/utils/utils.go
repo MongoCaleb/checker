@@ -36,7 +36,7 @@ func GetLatestSnootyParserTag() string {
 func GetNetworkFile(input string) []byte {
 	resp, err := http.Get(input)
 	if err != nil {
-		log.Panicf("Could not get file %s: ", input, err)
+		log.Panicf("Could not get file %s: %v", input, err)
 	}
 	defer resp.Body.Close()
 
