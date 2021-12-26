@@ -55,35 +55,32 @@ all links are checked for validity.`,
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
 
-		f, err := os.OpenFile("log.out", os.O_WRONLY|os.O_CREATE, 0755)
-		if err != nil {
-			panic(err)
-		}
-		if err := os.Truncate("log.out", 0); err != nil {
-			log.Panic(err)
-		}
-		log.SetOutput(f)
-		log.SetLevel(log.DebugLevel)
-		start := time.Now()
+		diagnostics := make([]string, 0)
+		diags := make(chan string)
+		go func() {
+			for d := range diags {
+				diagnostics = append(diagnostics, d)
+			}
+		}()
+
 		type intersphinxResult struct {
 			domain string
 			file   []byte
 		}
 
-		// rstSpec := utils.GetFile(utils.GetLatestSnootyParserTag())
 		basepath, err := filepath.Abs(path)
 		if err != nil {
 			log.Panic(err)
 		}
 		snootyToml := utils.GetLocalFile(filepath.Join(basepath, "snooty.toml"))
-		projectCfg, err := sources.NewTomlConfig(snootyToml)
+		projectSnooty, err := sources.NewTomlConfig(snootyToml)
 		if err != nil {
 			log.Panic(err)
 		}
-		intersphinxes := make([]intersphinx.SphinxMap, len(projectCfg.Intersphinx))
+		intersphinxes := make([]intersphinx.SphinxMap, len(projectSnooty.Intersphinx))
 		var wgSetup sync.WaitGroup
-		ixs := make(chan intersphinxResult, len(projectCfg.Intersphinx))
-		for _, intersphinx := range projectCfg.Intersphinx {
+		ixs := make(chan intersphinxResult, len(projectSnooty.Intersphinx))
+		for _, intersphinx := range projectSnooty.Intersphinx {
 			wgSetup.Add(1)
 			go func(phx string) {
 				domain := strings.Split(phx, "objects.inv")[0]
@@ -108,26 +105,26 @@ all links are checked for validity.`,
 		sharedLocals := make(collectors.RefTargetMap)
 
 		for _, share := range allShared {
-			sharedFile := utils.GetNetworkFile(projectCfg.SharedPath + share.Path)
-			sharedRefs.Union(collectors.GatherSharedRefs(sharedFile, *projectCfg))
-			sharedLocals.Union(collectors.GatherSharedLocalRefs(sharedFile, *projectCfg))
+			sharedFile := utils.GetNetworkFile(projectSnooty.SharedPath + share.Path)
+			sharedRefs.Union(collectors.GatherSharedRefs(sharedFile, *projectSnooty))
+			sharedLocals.Union(collectors.GatherSharedLocalRefs(sharedFile, *projectSnooty))
 		}
 
 		allConstants := collectors.GatherConstants(files)
 		allRoleTargets := collectors.GatherRoles(files)
 		allHTTPLinks := collectors.GatherHTTPLinks(files)
-		allLocalRefs := collectors.GatherLocalRefs(files).SSLtoTLS()
+		allLocalRefs := collectors.GatherLocalRefs(files).SSLToTLS()
 
 		allRoleTargets.Union(sharedRefs)
 		allLocalRefs.Union(sharedLocals)
 
-		allRoleTargets = allRoleTargets.ConvertConstantRefs(*projectCfg)
+		allRoleTargets = allRoleTargets.ConvertConstants(projectSnooty)
 
 		for con, filename := range allConstants {
-			if _, ok := projectCfg.Constants[con.Name]; !ok {
-				log.Errorf("%s is not defined in the config", con)
+			if _, ok := projectSnooty.Constants[con.Name]; !ok {
+				diags <- fmt.Sprintf("%s is not defined in config", con)
 			}
-			testCon := rst.RstConstant{Name: con.Name, Target: projectCfg.Constants[filename] + con.Name}
+			testCon := rst.RstConstant{Name: con.Name, Target: projectSnooty.Constants[filename] + con.Name}
 			if testCon.IsHTTPLink() {
 				allHTTPLinks[rst.RstHTTPLink(testCon.Target)] = filename
 			}
@@ -141,8 +138,8 @@ all links are checked for validity.`,
 		// limit concurrency to 5
 		semaphore := make(chan struct{}, 5)
 
-		// have a max rate of 500/sec
-		rate := make(chan struct{}, 500)
+		// have a max rate of 100/sec
+		rate := make(chan struct{}, 100)
 		for i := 0; i < cap(rate); i++ {
 			rate <- struct{}{}
 		}
@@ -153,8 +150,6 @@ all links are checked for validity.`,
 			defer ticker.Stop()
 			for range ticker.C {
 				_, ok := <-rate
-				// if this isn't going to run indefinitely, signal
-				// this to return by closing the rate channel.
 				if !ok {
 					return
 				}
@@ -166,7 +161,7 @@ all links are checked for validity.`,
 			case "ref":
 				if _, ok := sphinxMap[role.Target]; !ok {
 					if _, ok := allLocalRefs.Get(&role); !ok {
-						log.Errorf("in %s: %+v is not a valid ref", filename, role)
+						diags <- fmt.Sprintf("in %s: %+v is not a valid ref", filename, role)
 					}
 				}
 			case "doc":
@@ -178,26 +173,26 @@ all links are checked for validity.`,
 					}
 				}
 				if !found {
-					log.Errorf("in %s: %s is not a valid file found in this docset", filename, role)
+					diags <- fmt.Sprintf("in %s: %s is not a valid file found in this docset", filename, role)
 				}
 
 			case "py:meth":
 				if _, ok := sphinxMap[role.Target]; !ok {
 					if _, ok := allLocalRefs.Get(&role); !ok {
-						log.Errorf("in %s: %+v is not a valid ref", filename, role)
+						diags <- fmt.Sprintf("in %s: %+v is not a valid ref", filename, role)
 					}
 				}
 			case "py:class":
 				if _, ok := sphinxMap[role.Target]; !ok {
 					if _, ok := allLocalRefs.Get(&role); !ok {
-						log.Errorf("in %s: %+v is not a valid ref", filename, role)
+						diags <- fmt.Sprintf("in %s: %+v is not a valid ref", filename, role)
 					}
 				}
 			default:
 				if _, ok := rstSpecRoles.Roles[role.Name]; !ok {
 					if _, ok := rstSpecRoles.RawRoles[role.Name]; !ok {
 						if _, ok := rstSpecRoles.RstObjects[role.Name]; !ok {
-							log.Errorf("in %s: %s is not a valid role", filename, role)
+							diags <- fmt.Sprintf("in %s: %s is not a valid role", filename, role)
 						}
 					}
 					continue
@@ -215,7 +210,7 @@ all links are checked for validity.`,
 					if _, ok := checkedUrls.Load(url); !ok {
 						checkedUrls.Store(url, true)
 						if !utils.IsReachable(url) {
-							log.Error(errmsg)
+							diags <- errmsg
 						}
 					}
 				}
@@ -240,16 +235,14 @@ all links are checked for validity.`,
 				}
 			})
 		}
-		duration := time.Since(start)
-		log.Info(duration)
-		// os.Exit(0)
-		networkStart := time.Now()
-		log.Info("workstack length: ", len(workStack))
-		// for _, f := range workStack {
-		// 	go f()
-		// }
+		for _, f := range workStack {
+			go f()
+		}
 		wgValidate.Wait()
-		log.Info(time.Since(networkStart))
+		close(diags)
+		for _, msg := range diagnostics {
+			log.Error(msg)
+		}
 	},
 }
 

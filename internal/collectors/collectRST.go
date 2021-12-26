@@ -102,17 +102,18 @@ func GatherRoles(files []string) RstRoleMap {
 
 func (r *RstRoleMap) Get(key string) (*rst.RstRole, bool) {
 	for k := range *r {
-		if k.Name == key {
+		if k.Target == key {
 			return &k, true
 		}
 	}
 	return nil, false
 }
 
-func (r *RstRoleMap) Union(other RstRoleMap) {
+func (r *RstRoleMap) Union(other RstRoleMap) *RstRoleMap {
 	for k, v := range other {
 		(*r)[k] = v
 	}
+	return r
 }
 
 func GatherConstants(files []string) map[rst.RstConstant]string {
@@ -156,12 +157,14 @@ func (r *RefTargetMap) Get(ref *rst.RstRole) (*rst.RefTarget, bool) {
 	return nil, false
 }
 
-func (r *RefTargetMap) Union(other RefTargetMap) {
+func (r *RefTargetMap) Union(other RefTargetMap) *RefTargetMap {
 	for k, v := range other {
 		(*r)[k] = v
 	}
+	return r
 }
-func (r RefTargetMap) SSLtoTLS() RefTargetMap {
+
+func (r RefTargetMap) SSLToTLS() RefTargetMap {
 	for k, v := range r {
 		if strings.Contains(k.Name, "ssl") {
 			tlsK := rst.RefTarget{Name: strings.Replace(k.Name, "ssl", "tls", 1)}
@@ -207,7 +210,7 @@ func GatherSharedLocalRefs(input []byte, defs sources.TomlConfig) RefTargetMap {
 	return refs
 }
 
-func (r RstRoleMap) ConvertConstantRefs(defs sources.TomlConfig) RstRoleMap {
+func (r RstRoleMap) ConvertConstants(defs *sources.TomlConfig) RstRoleMap {
 	for k, v := range r {
 		allFound := sharedConstantRegex.FindAllString(k.Target, -1)
 		for _, match := range allFound {

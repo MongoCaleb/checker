@@ -121,7 +121,7 @@ func TestGatherRoles(t *testing.T) {
 	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "aggregation.txt"), []byte(aggregationsFile), 0644))
 	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "gridfs.txt"), []byte(grifsFile), 0644))
 
-	expected := map[rst.RstRole]string{
+	expected := RstRoleMap{
 		{Target: "/compatibility", RoleType: "role", Name: "doc"}:                                             "/source/index.txt",
 		{Target: "/core/aggregation-pipeline-limits/", RoleType: "role", Name: "manual"}:                      "/source/fundamentals/aggregation.txt",
 		{Target: "/core/aggregation-pipeline/", RoleType: "role", Name: "manual"}:                             "/source/fundamentals/aggregation.txt",
@@ -158,6 +158,88 @@ func TestGatherRoles(t *testing.T) {
 }
 
 func TestRstRoleMapGet(t *testing.T) {
+	defer afterTest(t)
+
+	check(FS.MkdirAll(filepath.Join(basepath, "source"), 0755))
+	check(FS.MkdirAll(filepath.Join(basepath, "source", "fundamentals"), 0755))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "snooty.toml"), []byte("test"), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "index.txt"), []byte(indexFile), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "aggregation.txt"), []byte(aggregationsFile), 0644))
+	check(iowrap.WriteFile(FS, filepath.Join(basepath, "source", "fundamentals", "gridfs.txt"), []byte(grifsFile), 0644))
+
+	roleMap := GatherRoles(GatherFiles(basepath))
+
+	cases := []struct {
+		key   string
+		found bool
+	}{{
+		key:   "/compatibility",
+		found: true,
+	}, {
+		key:   "/core/aggregation-pipeline-limits/",
+		found: true,
+	}, {
+		key:   "gridfs-retrieve-file-info",
+		found: true,
+	}, {
+		key:   "nope",
+		found: false,
+	}}
+
+	for _, c := range cases {
+		_, ok := roleMap.Get(c.key)
+		assert.Equal(t, c.found, ok, "key %s should be %v", c.key, c.found)
+	}
+
+}
+
+func TestRstRoleMapUnion(t *testing.T) {
+	rm1 := RstRoleMap{
+		{Target: "/compatibility", RoleType: "role", Name: "doc"}:                        "/source/index.txt",
+		{Target: "/core/aggregation-pipeline-limits/", RoleType: "role", Name: "manual"}: "/source/fundamentals/aggregation.txt",
+	}
+
+	rm2 := RstRoleMap{
+		{Target: "/quick-start", RoleType: "role", Name: "doc"}:                                           "/source/index.txt",
+		{Target: "/reference/limits/#mongodb-limit-BSON-Document-Size", RoleType: "role", Name: "manual"}: "/source/fundamentals/aggregation.txt",
+	}
+
+	expected := RstRoleMap{
+		{Target: "/compatibility", RoleType: "role", Name: "doc"}:                                         "/source/index.txt",
+		{Target: "/core/aggregation-pipeline-limits/", RoleType: "role", Name: "manual"}:                  "/source/fundamentals/aggregation.txt",
+		{Target: "/quick-start", RoleType: "role", Name: "doc"}:                                           "/source/index.txt",
+		{Target: "/reference/limits/#mongodb-limit-BSON-Document-Size", RoleType: "role", Name: "manual"}: "/source/fundamentals/aggregation.txt",
+	}
+
+	assert.EqualValues(t, &expected, rm1.Union(rm2), "union should return union of two maps")
+}
+
+func TestRSTRoleMapConvertConstants(t *testing.T) {
+	testInput := RstRoleMap{
+		{Target: "/{+driver+}/quick-start", RoleType: "role", Name: "doc"}:     "/source/index.txt",
+		{Target: "/{+version+}/quick-start", RoleType: "role", Name: "manual"}: "/source/fundamentals/aggregation.txt",
+	}
+
+	expected := RstRoleMap{
+		{Target: "/node/quick-start", RoleType: "role", Name: "doc"}:    "/source/index.txt",
+		{Target: "/4.42/quick-start", RoleType: "role", Name: "manual"}: "/source/fundamentals/aggregation.txt",
+	}
+
+	constants := []byte(`
+[constants]
+version = "4.42"
+driver = "node"
+`)
+
+	cfg, err := sources.NewTomlConfig(constants)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert.EqualValues(t, expected, testInput.ConvertConstants(cfg), "convertConstants should convert constants in map")
+}
+
+func TestRefTargetMapGet(t *testing.T) {
 	targets := []rst.RstRole{
 		{Target: "gridfs-delete-files", RoleType: "ref", Name: "ref"},
 		{Target: "gridfs-create-bucket", RoleType: "ref", Name: "ref"},
@@ -183,6 +265,40 @@ func TestRstRoleMapGet(t *testing.T) {
 		_, ok := localRefs.Get(&target)
 		assert.True(t, ok, "localRefs should contain %s", target.Target)
 	}
+}
+
+func TestRefTargetMapUnion(t *testing.T) {
+	lr1 := RefTargetMap{
+		{Name: "gridfs-create-bucket"}: "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-delete-bucket"}: "/source/fundamentals/gridfs.txt",
+	}
+
+	lr2 := RefTargetMap{
+		{Name: "gridfs-delete-files"}:   "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-download-files"}: "/source/fundamentals/gridfs.txt",
+	}
+	expected := RefTargetMap{
+		{Name: "gridfs-create-bucket"}:  "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-delete-bucket"}:  "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-delete-files"}:   "/source/fundamentals/gridfs.txt",
+		{Name: "gridfs-download-files"}: "/source/fundamentals/gridfs.txt",
+	}
+
+	assert.EqualValues(t, &expected, lr1.Union(lr2), "union should return union of two maps")
+
+}
+
+func TestRefTargetMapSSLToTLS(t *testing.T) {
+	lr1 := RefTargetMap{
+		{Name: "nodejs-ssl"}: "/source/fundamentals/ssl.txt",
+	}
+
+	expected := RefTargetMap{
+		{Name: "nodejs-ssl"}: "/source/fundamentals/ssl.txt",
+		{Name: "nodejs-tls"}: "/source/fundamentals/ssl.txt",
+	}
+
+	assert.EqualValues(t, expected, lr1.SSLToTLS(), "union should return union of two maps")
 }
 
 func TestGatherConstants(t *testing.T) {
