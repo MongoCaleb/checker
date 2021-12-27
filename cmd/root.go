@@ -41,7 +41,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var path string
+var (
+	path string
+	refs bool
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -160,9 +163,11 @@ all links are checked for validity.`,
 		for role, filename := range allRoleTargets {
 			switch role.Name {
 			case "ref":
-				if _, ok := sphinxMap[role.Target]; !ok {
-					if _, ok := allLocalRefs.Get(&role); !ok {
-						diags <- fmt.Sprintf("in %s: %+v is not a valid ref", filename, role)
+				if refs {
+					if _, ok := sphinxMap[role.Target]; !ok {
+						if _, ok := allLocalRefs.Get(&role); !ok {
+							diags <- fmt.Sprintf("in %s: %+v is not a valid ref", filename, role)
+						}
 					}
 				}
 			case "doc":
@@ -178,15 +183,19 @@ all links are checked for validity.`,
 				}
 
 			case "py:meth":
-				if _, ok := sphinxMap[role.Target]; !ok {
-					if _, ok := allLocalRefs.Get(&role); !ok {
-						diags <- fmt.Sprintf("in %s: %+v is not a valid ref", filename, role)
+				if refs {
+					if _, ok := sphinxMap[role.Target]; !ok {
+						if _, ok := allLocalRefs.Get(&role); !ok {
+							diags <- fmt.Sprintf("in %s: %+v is not a valid ref", filename, role)
+						}
 					}
 				}
 			case "py:class":
-				if _, ok := sphinxMap[role.Target]; !ok {
-					if _, ok := allLocalRefs.Get(&role); !ok {
-						diags <- fmt.Sprintf("in %s: %+v is not a valid ref", filename, role)
+				if refs {
+					if _, ok := sphinxMap[role.Target]; !ok {
+						if _, ok := allLocalRefs.Get(&role); !ok {
+							diags <- fmt.Sprintf("in %s: %+v is not a valid ref", filename, role)
+						}
 					}
 				}
 			default:
@@ -266,4 +275,5 @@ func init() {
 	if err := rootCmd.MarkPersistentFlagRequired("path"); err != nil {
 		log.Panic(err)
 	}
+	rootCmd.PersistentFlags().BoolVar(&refs, "refs", false, "check refs")
 }
