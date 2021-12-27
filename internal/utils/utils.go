@@ -59,18 +59,16 @@ func IsHTTPLink(input string) bool {
 	return httpLinkRegex.MatchString(input)
 }
 
-func IsReachable(url string) bool {
+func IsReachable(url string) (*http.Response, bool) {
 
 	response, errors := http.Get(url)
 
 	if errors != nil {
-		log.Debug(url)
-		log.Error(errors)
-		return false
+		return response, false
 	}
 
 	if response.StatusCode == 200 {
-		return true
+		return nil, true
 	}
-	return false
+	return response, false
 }

@@ -95,6 +95,7 @@ all links are checked for validity.`,
 			}
 		}()
 		wgSetup.Wait()
+		close(ixs)
 
 		sphinxMap := intersphinx.JoinSphinxes(intersphinxes)
 		files := collectors.GatherFiles(basepath)
@@ -198,7 +199,6 @@ all links are checked for validity.`,
 					continue
 				}
 				url := fmt.Sprintf(rstSpecRoles.Roles[role.Name], role.Target)
-				errmsg := fmt.Sprintf("in %s: interpeted url %s from  %+v was not valid", filename, url, role)
 				workFunc := func() {
 					defer wgValidate.Done()
 					rate <- struct{}{}
@@ -209,7 +209,8 @@ all links are checked for validity.`,
 					wgValidate.Add(1)
 					if _, ok := checkedUrls.Load(url); !ok {
 						checkedUrls.Store(url, true)
-						if !utils.IsReachable(url) {
+						if resp, ok := utils.IsReachable(url); !ok {
+							errmsg := fmt.Sprintf("in %s: interpeted url %s from  %+v was not valid. Got response %+v", filename, url, role, resp)
 							diags <- errmsg
 						}
 					}
@@ -229,8 +230,9 @@ all links are checked for validity.`,
 				wgValidate.Add(1)
 				if _, ok := checkedUrls.Load(link); !ok {
 					checkedUrls.Store(link, true)
-					if !utils.IsReachable(string(link)) {
-						log.Errorf("in %s: %s is not a valid http link", filename, link)
+					if resp, ok := utils.IsReachable(string(link)); !ok {
+						errmsg := fmt.Sprintf("in %s: %s is not a valid http link. Got response %+v", filename, link, resp)
+						diags <- errmsg
 					}
 				}
 			})
@@ -239,7 +241,6 @@ all links are checked for validity.`,
 			go f()
 		}
 		wgValidate.Wait()
-		close(diags)
 		for _, msg := range diagnostics {
 			log.Error(msg)
 		}
