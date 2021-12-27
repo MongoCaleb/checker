@@ -1,12 +1,13 @@
 package collectors
 
 import (
-	"checker/internal/parsers/rst"
-	"checker/internal/sources"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/terakilobyte/checker/internal/parsers/rst"
+	"github.com/terakilobyte/checker/internal/sources"
 
 	iowrap "github.com/spf13/afero"
 

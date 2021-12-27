@@ -1,13 +1,14 @@
 package collectors
 
 import (
-	"checker/internal/parsers/rst"
-	"checker/internal/sources"
 	_ "embed"
 	"io"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/terakilobyte/checker/internal/parsers/rst"
+	"github.com/terakilobyte/checker/internal/sources"
 
 	log "github.com/sirupsen/logrus"
 	iowrap "github.com/spf13/afero"

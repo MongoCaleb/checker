@@ -22,16 +22,18 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"checker/internal/collectors"
-	"checker/internal/parsers/intersphinx"
-	"checker/internal/parsers/rst"
-	"checker/internal/sources"
-	"checker/internal/utils"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/terakilobyte/checker/internal/parsers/intersphinx"
+	"github.com/terakilobyte/checker/internal/parsers/rst"
+	"github.com/terakilobyte/checker/internal/sources"
+	"github.com/terakilobyte/checker/internal/utils"
+
+	"github.com/terakilobyte/checker/internal/collectors"
 
 	log "github.com/sirupsen/logrus"
 
