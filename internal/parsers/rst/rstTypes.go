@@ -6,10 +6,9 @@ import (
 )
 
 var (
-	constantRegex = regexp.MustCompile(`<\{\+([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)\+\}(\/[\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)>\x60`)
-	httpLinkRegex = regexp.MustCompile(`(https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
-	roleRegex     = regexp.MustCompile(`:([[:alnum:]\.]+):\x60([^\x60]+)`)
-	// roleRegex          = regexp.MustCompile(`:([[:graph:]]+):\x60([\w\s\-_\.\d\\\/=+!@#$%^&*\(\)\[\]\\<>\{\}'\?:]+)\x60`)
+	constantRegex      = regexp.MustCompile(`<\{\+([\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)\+\}(\/[\w\s\-_\.\d\\\/=+!@#$%^&*(\)]*)>\x60`)
+	httpLinkRegex      = regexp.MustCompile(`(https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
+	roleRegex          = regexp.MustCompile(`:([[:alnum:]\.]+):\x60([^\x60]+)`)
 	localRefRegex      = regexp.MustCompile(`\.\. +_([\-_=+!@#$%^&\(\)\w\d\p{P}\p{S} ]+):`)
 	sharedIncludeRegex = regexp.MustCompile(`\.\. sharedinclude::\s([\w\-_\.\d\\\/=+!@#$%^&*(\)\[\]\\\<\>'\?]+)`)
 	directiveRegex     = regexp.MustCompile(`\.\.\s([[:alnum:]]+)::\s([[:graph:] ]+)`)

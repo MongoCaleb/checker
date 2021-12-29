@@ -117,6 +117,9 @@ func TestLinkParser(t *testing.T) {
 		input:    "we can say http and www without any links being found",
 		expected: []RstHTTPLink{},
 	}, {
+		input:    "https://www.flibberptyquz.co",
+		expected: []RstHTTPLink{"https://www.flibberptyquz.co"},
+	}, {
 		input:    "markdown links are found\n\t\t [some markdown link](https://www.google.com)\\n\" +\n\t\t\"   [some other link](https://a.bad.url)\\n\" +",
 		expected: []RstHTTPLink{RstHTTPLink("https://www.google.com"), RstHTTPLink("https://a.bad.url")},
 	}, {

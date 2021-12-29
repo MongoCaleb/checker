@@ -140,8 +140,8 @@ all links are checked for validity.`,
 		// limit concurrency to 5
 		semaphore := make(chan struct{}, 5)
 
-		// have a max rate of 100/sec
-		rate := make(chan struct{}, 100)
+		// have a max rate of 500/sec
+		rate := make(chan struct{}, 500)
 		for i := 0; i < cap(rate); i++ {
 			rate <- struct{}{}
 		}
@@ -208,13 +208,13 @@ all links are checked for validity.`,
 				}
 				url := fmt.Sprintf(rstSpecRoles.Roles[role.Name], role.Target)
 				workFunc := func() {
+					wgValidate.Add(1)
 					defer wgValidate.Done()
 					rate <- struct{}{}
 					semaphore <- struct{}{}
 					defer func() {
 						<-semaphore
 					}()
-					wgValidate.Add(1)
 					if _, ok := checkedUrls.Load(url); !ok {
 						checkedUrls.Store(url, true)
 						if resp, ok := utils.IsReachable(url); !ok {
@@ -231,27 +231,33 @@ all links are checked for validity.`,
 			if !contains(changes, filename) {
 				continue
 			}
-			workStack = append(workStack, func() {
-				defer wgValidate.Done()
-				rate <- struct{}{}
-				semaphore <- struct{}{}
-				defer func() {
-					<-semaphore
-				}()
-				wgValidate.Add(1)
-				if _, ok := checkedUrls.Load(link); !ok {
-					checkedUrls.Store(link, true)
-					if resp, ok := utils.IsReachable(string(link)); !ok {
-						errmsg := fmt.Sprintf("in %s: %s is not a valid http link. Got response %+v", filename, link, resp)
-						diags <- errmsg
+			wf := func(link rst.RstHTTPLink, filename string) func() {
+				return func() {
+					wgValidate.Add(1)
+					defer wgValidate.Done()
+					rate <- struct{}{}
+					semaphore <- struct{}{}
+					defer func() {
+						<-semaphore
+					}()
+					if _, ok := checkedUrls.Load(link); !ok {
+						checkedUrls.Store(link, true)
+
+						if resp, ok := utils.IsReachable(string(link)); !ok {
+							errmsg := fmt.Sprintf("in %s: %s is not a valid http link. Got response %+v", filename, link, resp)
+							diags <- errmsg
+						}
 					}
 				}
-			})
+			}
+			workStack = append(workStack, wf(link, filename))
 		}
+		fmt.Println("workstack len", len(workStack))
 		for _, f := range workStack {
 			go f()
 		}
 		wgValidate.Wait()
+		fmt.Println("diagnostics len", len(diagnostics))
 		for _, msg := range diagnostics {
 			log.Error(msg)
 		}
@@ -262,7 +268,6 @@ all links are checked for validity.`,
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
 		os.Exit(1)
 	}
 
@@ -290,7 +295,7 @@ func checkErr(err error) {
 
 func contains(s []string, e string) bool {
 	for _, a := range s {
-		if a == e {
+		if strings.Contains(a, e) {
 			return true
 		}
 	}

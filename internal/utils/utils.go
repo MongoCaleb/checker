@@ -70,5 +70,6 @@ func IsReachable(url string) (*http.Response, bool) {
 	if response.StatusCode == 200 {
 		return nil, true
 	}
-	return response, false
+
+	return nil, false
 }
