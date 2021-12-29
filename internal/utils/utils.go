@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"time"
 
+	"golang.org/x/time/rate"
+
 	"github.com/google/go-github/v41/github"
 	log "github.com/sirupsen/logrus"
 )
@@ -15,7 +17,15 @@ const (
 	rstSpecBase = "https://raw.githubusercontent.com/mongodb/snooty-parser/"
 )
 
-var httpLinkRegex = regexp.MustCompile(`(https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
+var (
+	client        *RLHTTPClient
+	httpLinkRegex = regexp.MustCompile(`(https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
+)
+
+func init() {
+	rl := rate.NewLimiter(rate.Every(10*time.Second), 50)
+	client = NewClient(rl)
+}
 
 func GetLatestSnootyParserTag() string {
 	ghClient := github.NewClient(nil)
@@ -34,7 +44,11 @@ func GetLatestSnootyParserTag() string {
 }
 
 func GetNetworkFile(input string) []byte {
-	resp, err := http.Get(input)
+	req, err := http.NewRequest("GET", input, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		log.Panicf("Could not get file %s: %v", input, err)
 	}
@@ -60,8 +74,11 @@ func IsHTTPLink(input string) bool {
 }
 
 func IsReachable(url string) (*http.Response, bool) {
-
-	response, errors := http.Get(url)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	response, errors := client.Do(req)
 
 	if errors != nil {
 		return response, false
@@ -72,4 +89,34 @@ func IsReachable(url string) (*http.Response, bool) {
 	}
 
 	return nil, false
+}
+
+//RLHTTPClient Rate Limited HTTP Client
+type RLHTTPClient struct {
+	client      *http.Client
+	Ratelimiter *rate.Limiter
+}
+
+//Do dispatches the HTTP request to the network
+func (c *RLHTTPClient) Do(req *http.Request) (*http.Response, error) {
+	// Comment out the below 5 lines to turn off ratelimiting
+	ctx := context.Background()
+	err := c.Ratelimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+//NewClient return http client with a ratelimiter
+func NewClient(rl *rate.Limiter) *RLHTTPClient {
+	c := &RLHTTPClient{
+		client:      http.DefaultClient,
+		Ratelimiter: rl,
+	}
+	return c
 }
