@@ -75,14 +75,10 @@ all links are checked for validity.`,
 		}
 
 		basepath, err := filepath.Abs(path)
-		if err != nil {
-			log.Panic(err)
-		}
+		checkErr(err)
 		snootyToml := utils.GetLocalFile(filepath.Join(basepath, "snooty.toml"))
 		projectSnooty, err := sources.NewTomlConfig(snootyToml)
-		if err != nil {
-			log.Panic(err)
-		}
+		checkErr(err)
 		intersphinxes := make([]intersphinx.SphinxMap, len(projectSnooty.Intersphinx))
 		var wgSetup sync.WaitGroup
 		ixs := make(chan intersphinxResult, len(projectSnooty.Intersphinx))
@@ -185,7 +181,7 @@ all links are checked for validity.`,
 					}
 				}
 
-			case "py:meth":
+			case "py:meth": // this is a fancy magic ref
 				if refs {
 					if _, ok := sphinxMap[role.Target]; !ok {
 						if _, ok := allLocalRefs.Get(&role); !ok {
@@ -193,7 +189,7 @@ all links are checked for validity.`,
 						}
 					}
 				}
-			case "py:class":
+			case "py:class": // this is a fancy magic ref
 				if refs {
 					if _, ok := sphinxMap[role.Target]; !ok {
 						if _, ok := allLocalRefs.Get(&role); !ok {
