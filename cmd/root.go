@@ -208,7 +208,6 @@ all links are checked for validity.`,
 				}
 				url := fmt.Sprintf(rstSpecRoles.Roles[role.Name], role.Target)
 				workFunc := func() {
-					wgValidate.Add(1)
 					defer wgValidate.Done()
 					rate <- struct{}{}
 					semaphore <- struct{}{}
@@ -228,12 +227,12 @@ all links are checked for validity.`,
 		}
 
 		for link, filename := range allHTTPLinks {
-			if !contains(changes, filename) {
+
+			if !contains(changes, strings.TrimPrefix(filename, "/")) {
 				continue
 			}
 			wf := func(link rst.RstHTTPLink, filename string) func() {
 				return func() {
-					wgValidate.Add(1)
 					defer wgValidate.Done()
 					rate <- struct{}{}
 					semaphore <- struct{}{}
@@ -252,12 +251,11 @@ all links are checked for validity.`,
 			}
 			workStack = append(workStack, wf(link, filename))
 		}
-		fmt.Println("workstack len", len(workStack))
+		wgValidate.Add(len(workStack))
 		for _, f := range workStack {
 			go f()
 		}
 		wgValidate.Wait()
-		fmt.Println("diagnostics len", len(diagnostics))
 		for _, msg := range diagnostics {
 			log.Error(msg)
 		}
