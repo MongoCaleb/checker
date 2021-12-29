@@ -23,7 +23,6 @@ package cmd
 
 import (
 	"path/filepath"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -44,8 +43,10 @@ import (
 )
 
 var (
-	path string
-	refs bool
+	path    string
+	refs    bool
+	docs    bool
+	changes []string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -101,7 +102,6 @@ all links are checked for validity.`,
 		}()
 		wgSetup.Wait()
 		close(ixs)
-
 		sphinxMap := intersphinx.JoinSphinxes(intersphinxes)
 		files := collectors.GatherFiles(basepath)
 
@@ -161,8 +161,14 @@ all links are checked for validity.`,
 				}
 			}
 		}()
+		if len(changes) == 0 {
+			changes = files
+		}
 
 		for role, filename := range allRoleTargets {
+			if !contains(changes, filename) {
+				continue
+			}
 			switch role.Name {
 			case "ref":
 				if refs {
@@ -173,15 +179,10 @@ all links are checked for validity.`,
 					}
 				}
 			case "doc":
-				found := false
-				for _, f := range files {
-					if matched, _ := regexp.Match(strings.TrimSuffix(role.Target, "/"), []byte(f)); matched {
-						found = true
-						break
+				if docs {
+					if !contains(files, filename) {
+						diags <- fmt.Sprintf("in %s: %s is not a valid file found in this docset", filename, role)
 					}
-				}
-				if !found {
-					diags <- fmt.Sprintf("in %s: %s is not a valid file found in this docset", filename, role)
 				}
 
 			case "py:meth":
@@ -231,6 +232,9 @@ all links are checked for validity.`,
 		}
 
 		for link, filename := range allHTTPLinks {
+			if !contains(changes, filename) {
+				continue
+			}
 			workStack = append(workStack, func() {
 				defer wgValidate.Done()
 				rate <- struct{}{}
@@ -278,4 +282,21 @@ func init() {
 		log.Panic(err)
 	}
 	rootCmd.PersistentFlags().BoolVar(&refs, "refs", false, "check refs")
+	rootCmd.PersistentFlags().BoolVar(&docs, "docs", false, "check docs")
+	rootCmd.PersistentFlags().StringSliceVar(&changes, "changes", []string{}, "files to check")
+}
+
+func checkErr(err error) {
+	if err != nil {
+		log.Panic(err)
+	}
+}
+
+func contains(s []string, e string) bool {
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
