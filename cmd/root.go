@@ -22,6 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"log"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -33,8 +34,6 @@ import (
 	"github.com/terakilobyte/checker/internal/utils"
 
 	"github.com/terakilobyte/checker/internal/collectors"
-
-	log "github.com/sirupsen/logrus"
 
 	"fmt"
 	"os"
@@ -256,11 +255,13 @@ all links are checked for validity.`,
 			go f()
 		}
 		wgValidate.Wait()
-		for _, msg := range diagnostics {
-			log.Error(msg)
-		}
+		// for _, msg := range diagnostics {
+		// 	// log.Fatal(msg)
+		// 	log.Error(msg)
+		// }
+
 		if len(diagnostics) > 0 {
-			os.Exit(1)
+			log.Fatal("\n", strings.Join(diagnostics, "\n"))
 		}
 	},
 }
