@@ -259,6 +259,9 @@ all links are checked for validity.`,
 		for _, msg := range diagnostics {
 			log.Error(msg)
 		}
+		if len(diagnostics) > 0 {
+			os.Exit(1)
+		}
 	},
 }
 
