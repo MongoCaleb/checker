@@ -25,7 +25,6 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/terakilobyte/checker/internal/parsers/intersphinx"
 	"github.com/terakilobyte/checker/internal/parsers/rst"
@@ -137,26 +136,6 @@ all links are checked for validity.`,
 		workStack := make([]func(), 0)
 		rstSpecRoles := sources.NewRoleMap(utils.GetNetworkFile(utils.GetLatestSnootyParserTag()))
 
-		// limit concurrency to 5
-		semaphore := make(chan struct{}, 5)
-
-		// have a max rate of 500/sec
-		rate := make(chan struct{}, 500)
-		for i := 0; i < cap(rate); i++ {
-			rate <- struct{}{}
-		}
-
-		// leaky bucket
-		go func() {
-			ticker := time.NewTicker(100 * time.Millisecond)
-			defer ticker.Stop()
-			for range ticker.C {
-				_, ok := <-rate
-				if !ok {
-					return
-				}
-			}
-		}()
 		if len(changes) == 0 {
 			changes = files
 		}
@@ -209,11 +188,6 @@ all links are checked for validity.`,
 				url := fmt.Sprintf(rstSpecRoles.Roles[role.Name], role.Target)
 				workFunc := func() {
 					defer wgValidate.Done()
-					rate <- struct{}{}
-					semaphore <- struct{}{}
-					defer func() {
-						<-semaphore
-					}()
 					if _, ok := checkedUrls.Load(url); !ok {
 						checkedUrls.Store(url, true)
 						if resp, ok := utils.IsReachable(url); !ok {
@@ -234,11 +208,6 @@ all links are checked for validity.`,
 			wf := func(link rst.RstHTTPLink, filename string) func() {
 				return func() {
 					defer wgValidate.Done()
-					rate <- struct{}{}
-					semaphore <- struct{}{}
-					defer func() {
-						<-semaphore
-					}()
 					if _, ok := checkedUrls.Load(link); !ok {
 						checkedUrls.Store(link, true)
 

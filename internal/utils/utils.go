@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -23,7 +24,7 @@ var (
 )
 
 func init() {
-	rl := rate.NewLimiter(rate.Every(10*time.Second), 100)
+	rl := rate.NewLimiter(rate.Every(2*time.Second), 100)
 	client = NewClient(rl)
 }
 
@@ -74,11 +75,13 @@ func IsHTTPLink(input string) bool {
 }
 
 func IsReachable(url string) (*http.Response, bool) {
+	fmt.Println("Checking if", url, "is reachable")
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
 	response, errors := client.Do(req)
+	fmt.Printf("Response to %s is %+v :", url, response)
 
 	if errors != nil {
 		return response, false
