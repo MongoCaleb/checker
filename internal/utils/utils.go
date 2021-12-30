@@ -23,7 +23,7 @@ var (
 )
 
 func init() {
-	rl := rate.NewLimiter(rate.Every(10*time.Second), 50)
+	rl := rate.NewLimiter(rate.Every(10*time.Second), 100)
 	client = NewClient(rl)
 }
 
@@ -91,17 +91,14 @@ func IsReachable(url string) (*http.Response, bool) {
 	return nil, false
 }
 
-//RLHTTPClient Rate Limited HTTP Client
 type RLHTTPClient struct {
 	client      *http.Client
 	Ratelimiter *rate.Limiter
 }
 
-//Do dispatches the HTTP request to the network
 func (c *RLHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	// Comment out the below 5 lines to turn off ratelimiting
 	ctx := context.Background()
-	err := c.Ratelimiter.Wait(ctx) // This is a blocking call. Honors the rate limit
+	err := c.Ratelimiter.Wait(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +109,6 @@ func (c *RLHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	return resp, nil
 }
 
-//NewClient return http client with a ratelimiter
 func NewClient(rl *rate.Limiter) *RLHTTPClient {
 	c := &RLHTTPClient{
 		client:      http.DefaultClient,
