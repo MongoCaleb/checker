@@ -2,13 +2,10 @@ package utils
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
 	"time"
-
-	"golang.org/x/time/rate"
 
 	"github.com/google/go-github/v41/github"
 	log "github.com/sirupsen/logrus"
@@ -19,13 +16,14 @@ const (
 )
 
 var (
-	client        *RLHTTPClient
 	httpLinkRegex = regexp.MustCompile(`(https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
+	client        *http.Client
 )
 
 func init() {
-	rl := rate.NewLimiter(rate.Every(2*time.Second), 100)
-	client = NewClient(rl)
+	client = &http.Client{
+		Timeout: time.Second * 4,
+	}
 }
 
 func GetLatestSnootyParserTag() string {
@@ -74,48 +72,32 @@ func IsHTTPLink(input string) bool {
 	return httpLinkRegex.MatchString(input)
 }
 
-func IsReachable(url string) (*http.Response, bool) {
-	fmt.Println("Checking if", url, "is reachable")
+func IsReachable(url string) (string, bool) {
 	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Set("Connection", "Keep-Alive")
+	req.Header.Set("Accept-Language", "en-US")
+	req.Header.Set("User-Agent", "Mozilla/5.0")
 	if err != nil {
 		log.Fatal(err)
 	}
 	response, errors := client.Do(req)
-	fmt.Printf("Response to %s is %+v :", url, response)
 
 	if errors != nil {
-		return response, false
+		if response != nil {
+			sc := response.StatusCode
+			if sc < 400 {
+				return "", true
+			} else {
+				return response.Status, false
+			}
+		} else {
+			return "", false
+		}
 	}
 
-	if response.StatusCode == 200 {
-		return nil, true
+	if response.StatusCode < 400 {
+		return "", true
 	}
 
-	return nil, false
-}
-
-type RLHTTPClient struct {
-	client      *http.Client
-	Ratelimiter *rate.Limiter
-}
-
-func (c *RLHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	ctx := context.Background()
-	err := c.Ratelimiter.Wait(ctx)
-	if err != nil {
-		return nil, err
-	}
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
-}
-
-func NewClient(rl *rate.Limiter) *RLHTTPClient {
-	c := &RLHTTPClient{
-		client:      http.DefaultClient,
-		Ratelimiter: rl,
-	}
-	return c
+	return "", false
 }

@@ -22,10 +22,14 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"io/ioutil"
+	"math"
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/cheggaaa/pb/v3"
 	"github.com/terakilobyte/checker/internal/parsers/intersphinx"
 	"github.com/terakilobyte/checker/internal/parsers/rst"
 	"github.com/terakilobyte/checker/internal/sources"
@@ -42,10 +46,11 @@ import (
 )
 
 var (
-	path    string
-	refs    bool
-	docs    bool
-	changes []string
+	path     string
+	refs     bool
+	docs     bool
+	changes  []string
+	progress bool
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -133,7 +138,6 @@ all links are checked for validity.`,
 		}
 
 		checkedUrls := sync.Map{}
-		var wgValidate sync.WaitGroup
 		workStack := make([]func(), 0)
 		rstSpecRoles := sources.NewRoleMap(utils.GetNetworkFile(utils.GetLatestSnootyParserTag()))
 
@@ -146,6 +150,8 @@ all links are checked for validity.`,
 				continue
 			}
 			switch role.Name {
+			case "guilabel":
+				continue
 			case "ref":
 				if refs {
 					if _, ok := sphinxMap[role.Target]; !ok {
@@ -188,11 +194,10 @@ all links are checked for validity.`,
 				}
 				url := fmt.Sprintf(rstSpecRoles.Roles[role.Name], role.Target)
 				workFunc := func() {
-					defer wgValidate.Done()
 					if _, ok := checkedUrls.Load(url); !ok {
 						checkedUrls.Store(url, true)
 						if resp, ok := utils.IsReachable(url); !ok {
-							errmsg := fmt.Sprintf("in %s: interpeted url %s from  %+v was not valid. Got response %+v", filename, url, role, resp)
+							errmsg := fmt.Sprintf("in %s: interpeted url %s from  %+v was not valid. Got response %s", filename, url, role, resp)
 							diags <- errmsg
 						}
 					}
@@ -206,27 +211,44 @@ all links are checked for validity.`,
 			if !contains(changes, strings.TrimPrefix(filename, "/")) {
 				continue
 			}
-			wf := func(link rst.RstHTTPLink, filename string) func() {
-				return func() {
-					defer wgValidate.Done()
-					if _, ok := checkedUrls.Load(link); !ok {
-						checkedUrls.Store(link, true)
-
-						if resp, ok := utils.IsReachable(string(link)); !ok {
-							errmsg := fmt.Sprintf("in %s: %s is not a valid http link. Got response %+v", filename, link, resp)
-							diags <- errmsg
-						}
+			workFunc := func() {
+				if _, ok := checkedUrls.Load(link); !ok {
+					checkedUrls.Store(link, true)
+					if resp, ok := utils.IsReachable(string(link)); !ok {
+						errmsg := fmt.Sprintf("in %s: %s is not a valid http link. Got response %s", filename, link, resp)
+						diags <- errmsg
 					}
 				}
 			}
-			workStack = append(workStack, wf(link, filename))
+			workStack = append(workStack, workFunc)
 		}
-		wgValidate.Add(len(workStack))
-		for _, f := range workStack {
-			go f()
-		}
-		wgValidate.Wait()
 
+		jobChannel := make(chan func())
+		doneChannel := make(chan struct{})
+
+		var wgValidate sync.WaitGroup
+		wgValidate.Add(10)
+
+		for i := 0; i < 10; i++ {
+			go worker(i, &wgValidate, jobChannel, doneChannel)
+		}
+		bar := pb.StartNew(len(workStack)).SetMaxWidth(120)
+		if progress {
+			bar.SetWriter(os.Stdout)
+		} else {
+			bar.SetWriter(ioutil.Discard)
+		}
+		go func() {
+			for range doneChannel {
+				bar.Increment()
+			}
+		}()
+		for _, f := range workStack {
+			jobChannel <- f
+		}
+		close(jobChannel)
+		wgValidate.Wait()
+		bar.Finish()
 		for _, msg := range diagnostics {
 			log.Error(msg)
 		}
@@ -262,6 +284,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVar(&refs, "refs", false, "check :refs:")
 	rootCmd.PersistentFlags().BoolVar(&docs, "docs", false, "check :docs:")
 	rootCmd.PersistentFlags().StringSliceVar(&changes, "changes", []string{}, "files to check")
+	rootCmd.PersistentFlags().BoolVar(&progress, "progress", false, "show progress bar")
 }
 
 func checkErr(err error) {
@@ -277,4 +300,19 @@ func contains(s []string, e string) bool {
 		}
 	}
 	return false
+}
+
+func worker(id int, wg *sync.WaitGroup, jobChannel <-chan func(), doneChannel chan<- struct{}) {
+	defer wg.Done()
+	lastExecutionTime := time.Now()
+	minimumTimeBetweenEachExecution := time.Duration(math.Ceil(1e9 / (50 / float64(10))))
+	for job := range jobChannel {
+		timeUntilNextExecution := -(time.Since(lastExecutionTime) - minimumTimeBetweenEachExecution)
+		if timeUntilNextExecution > 0 {
+			time.Sleep(timeUntilNextExecution)
+		}
+		lastExecutionTime = time.Now()
+		job()
+		doneChannel <- struct{}{}
+	}
 }
