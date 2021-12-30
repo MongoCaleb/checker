@@ -50,8 +50,9 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "checker",
-	Short: "Checks refs, roles, and links in a docs project",
+	Use:     "checker",
+	Version: "0.1.0",
+	Short:   "Checks refs, roles, and links in a docs project",
 	Long: `Checker is a tool for checking refs, roles, and links in a docs project.
 It will check refs against locally found refs and those found in intersphinx targets,
 and checks roles against the latest RELEASE of rstspec.toml. Once they are validated,
@@ -252,12 +253,14 @@ func init() {
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
+	rootCmd.SetVersionTemplate("checker {{.Version}}\n")
+
 	rootCmd.PersistentFlags().StringVar(&path, "path", "", "path to the project")
 	if err := rootCmd.MarkPersistentFlagRequired("path"); err != nil {
 		log.Panic(err)
 	}
-	rootCmd.PersistentFlags().BoolVar(&refs, "refs", false, "check refs")
-	rootCmd.PersistentFlags().BoolVar(&docs, "docs", false, "check docs")
+	rootCmd.PersistentFlags().BoolVar(&refs, "refs", false, "check :refs:")
+	rootCmd.PersistentFlags().BoolVar(&docs, "docs", false, "check :docs:")
 	rootCmd.PersistentFlags().StringSliceVar(&changes, "changes", []string{}, "files to check")
 }
 
