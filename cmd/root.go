@@ -56,7 +56,7 @@ var (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "checker",
-	Version: "0.1.0",
+	Version: "0.1.2",
 	Short:   "Checks refs, roles, and links in a docs project",
 	Long: `Checker is a tool for checking refs, roles, and links in a docs project.
 It will check refs against locally found refs and those found in intersphinx targets,
