@@ -56,7 +56,7 @@ var (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "checker",
-	Version: "0.1.2",
+	Version: "0.1.3",
 	Short:   "Checks refs, roles, and links in a docs project",
 	Long: `Checker is a tool for checking refs, roles, and links in a docs project.
 It will check refs against locally found refs and those found in intersphinx targets,
@@ -151,7 +151,7 @@ all links are checked for validity.`,
 			}
 			switch role.Name {
 			case "guilabel":
-				continue
+				break
 			case "ref":
 				if refs {
 					if _, ok := sphinxMap[role.Target]; !ok {
@@ -159,12 +159,14 @@ all links are checked for validity.`,
 							diags <- fmt.Sprintf("in %s: %+v is not a valid ref", filename, role)
 						}
 					}
+					break
 				}
 			case "doc":
 				if docs {
 					if !contains(files, filename) {
 						diags <- fmt.Sprintf("in %s: %s is not a valid file found in this docset", filename, role)
 					}
+					break
 				}
 
 			case "py:meth": // this is a fancy magic ref
@@ -174,6 +176,7 @@ all links are checked for validity.`,
 							diags <- fmt.Sprintf("in %s: %+v is not a valid ref", filename, role)
 						}
 					}
+					break
 				}
 			case "py:class": // this is a fancy magic ref
 				if refs {
@@ -182,6 +185,7 @@ all links are checked for validity.`,
 							diags <- fmt.Sprintf("in %s: %+v is not a valid ref", filename, role)
 						}
 					}
+					break
 				}
 			default:
 				if _, ok := rstSpecRoles.Roles[role.Name]; !ok {
@@ -190,19 +194,24 @@ all links are checked for validity.`,
 							diags <- fmt.Sprintf("in %s: %s is not a valid role", filename, role)
 						}
 					}
-					continue
+					break
 				}
-				url := fmt.Sprintf(rstSpecRoles.Roles[role.Name], role.Target)
-				workFunc := func() {
+				workFunc := func(role rst.RstRole, filename string) func() {
+					url := fmt.Sprintf(rstSpecRoles.Roles[role.Name], role.Target)
 					if _, ok := checkedUrls.Load(url); !ok {
-						checkedUrls.Store(url, true)
-						if resp, ok := utils.IsReachable(url); !ok {
-							errmsg := fmt.Sprintf("in %s: interpeted url %s from  %+v was not valid. Got response %s", filename, url, role, resp)
-							diags <- errmsg
+						return func() {
+							checkedUrls.Store(url, true)
+							if resp, ok := utils.IsReachable(url); !ok {
+								errmsg := fmt.Sprintf("in %s: interpeted url %s from  %+v was not valid. Got response %s", filename, url, role, resp)
+								diags <- errmsg
+							}
 						}
+					} else {
+						return func() {}
+
 					}
 				}
-				workStack = append(workStack, workFunc)
+				workStack = append(workStack, workFunc(role, filename))
 			}
 		}
 
@@ -211,27 +220,33 @@ all links are checked for validity.`,
 			if !contains(changes, strings.TrimPrefix(filename, "/")) {
 				continue
 			}
-			workFunc := func() {
+			workFunc := func(link rst.RstHTTPLink, filename string) func() {
 				if _, ok := checkedUrls.Load(link); !ok {
-					checkedUrls.Store(link, true)
-					if resp, ok := utils.IsReachable(string(link)); !ok {
-						errmsg := fmt.Sprintf("in %s: %s is not a valid http link. Got response %s", filename, link, resp)
-						diags <- errmsg
+					return func() {
+						checkedUrls.Store(link, true)
+						if resp, ok := utils.IsReachable(string(link)); !ok {
+							errmsg := fmt.Sprintf("in %s: %s is not a valid http link. Got response %s", filename, link, resp)
+							diags <- errmsg
+						}
 					}
+				} else {
+					return func() {}
 				}
 			}
-			workStack = append(workStack, workFunc)
+
+			workStack = append(workStack, workFunc(link, filename))
 		}
 
 		jobChannel := make(chan func())
 		doneChannel := make(chan struct{})
 
 		var wgValidate sync.WaitGroup
+		// default workers is 10. Need to read this in as an optional flag and environmental variable
 		wgValidate.Add(10)
-
-		for i := 0; i < 10; i++ {
-			go worker(i, &wgValidate, jobChannel, doneChannel)
+		for range [10]struct{}{} {
+			go worker(&wgValidate, jobChannel, doneChannel)
 		}
+
 		bar := pb.StartNew(len(workStack)).SetMaxWidth(120)
 		if progress {
 			bar.SetWriter(os.Stdout)
@@ -243,9 +258,11 @@ all links are checked for validity.`,
 				bar.Increment()
 			}
 		}()
+
 		for _, f := range workStack {
 			jobChannel <- f
 		}
+
 		close(jobChannel)
 		wgValidate.Wait()
 		bar.Finish()
@@ -302,10 +319,10 @@ func contains(s []string, e string) bool {
 	return false
 }
 
-func worker(id int, wg *sync.WaitGroup, jobChannel <-chan func(), doneChannel chan<- struct{}) {
+func worker(wg *sync.WaitGroup, jobChannel <-chan func(), doneChannel chan<- struct{}) {
 	defer wg.Done()
 	lastExecutionTime := time.Now()
-	minimumTimeBetweenEachExecution := time.Duration(math.Ceil(1e9 / (50 / float64(10))))
+	minimumTimeBetweenEachExecution := time.Duration(math.Ceil(1e9 / (10 / float64(10))))
 	for job := range jobChannel {
 		timeUntilNextExecution := -(time.Since(lastExecutionTime) - minimumTimeBetweenEachExecution)
 		if timeUntilNextExecution > 0 {

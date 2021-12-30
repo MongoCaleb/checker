@@ -165,6 +165,7 @@ func (r *RefTargetMap) Union(other RefTargetMap) *RefTargetMap {
 	return r
 }
 
+// Snooty does magic and converts tsl to ssl in refs, so we have to mimic it
 func (r RefTargetMap) SSLToTLS() RefTargetMap {
 	for k, v := range r {
 		if strings.Contains(k.Name, "ssl") {

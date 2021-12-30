@@ -2,9 +2,11 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/v41/github"
@@ -15,9 +17,21 @@ const (
 	rstSpecBase = "https://raw.githubusercontent.com/mongodb/snooty-parser/"
 )
 
+type validRedirects [7]int
+
+func (v validRedirects) contains(i int) bool {
+	for _, a := range v {
+		if a == i {
+			return true
+		}
+	}
+	return false
+}
+
 var (
 	httpLinkRegex = regexp.MustCompile(`(https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
 	client        *http.Client
+	redirects     = validRedirects{301, 302, 303, 304, 305, 307, 308}
 )
 
 func init() {
@@ -72,7 +86,8 @@ func IsHTTPLink(input string) bool {
 	return httpLinkRegex.MatchString(input)
 }
 
-func IsReachable(url string) (string, bool) {
+func IsReachable(url string) (error, bool) {
+
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("Connection", "Keep-Alive")
 	req.Header.Set("Accept-Language", "en-US")
@@ -80,24 +95,20 @@ func IsReachable(url string) (string, bool) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	response, errors := client.Do(req)
+	response, err := client.Do(req)
 
-	if errors != nil {
-		if response != nil {
-			sc := response.StatusCode
-			if sc < 400 {
-				return "", true
-			} else {
-				return response.Status, false
+	if err != nil {
+		if strings.Contains(err.Error(), "stopped after 10 redirects") {
+			if redirects.contains(response.StatusCode) {
+				return nil, true
 			}
 		} else {
-			return "", false
+			return err, false
 		}
 	}
-
-	if response.StatusCode < 400 {
-		return "", true
+	if response.StatusCode == 200 {
+		return nil, true
+	} else {
+		return fmt.Errorf("%d", response.StatusCode), false
 	}
-
-	return "", false
 }
