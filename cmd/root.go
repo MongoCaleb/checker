@@ -22,27 +22,25 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
 	"io/ioutil"
 	"math"
+	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	log "github.com/sirupsen/logrus"
+
 	"github.com/cheggaaa/pb/v3"
+	"github.com/spf13/cobra"
+	"github.com/terakilobyte/checker/internal/collectors"
 	"github.com/terakilobyte/checker/internal/parsers/intersphinx"
 	"github.com/terakilobyte/checker/internal/parsers/rst"
 	"github.com/terakilobyte/checker/internal/sources"
 	"github.com/terakilobyte/checker/internal/utils"
-
-	"github.com/terakilobyte/checker/internal/collectors"
-
-	log "github.com/sirupsen/logrus"
-
-	"fmt"
-	"os"
-
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -51,20 +49,46 @@ var (
 	docs     bool
 	changes  []string
 	progress bool
+	workers  int
+	throttle int
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "checker",
 	Version: "0.1.3",
-	Short:   "Checks refs, roles, and links in a docs project",
-	Long: `Checker is a tool for checking refs, roles, and links in a docs project.
+	Short:   "Checks links, and optionally :ref:s, :doc:s, and other :role:s in a docs project.",
+	Long: `Checker is a tool for checking links in a docs project.
 It will check refs against locally found refs and those found in intersphinx targets,
 and checks roles against the latest RELEASE of rstspec.toml. Once they are validated,
-all links are checked for validity.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
+all links are checked for validity.
+
+This is mostly intended to be run on changed files only, as checking all of the links in a project
+can be very time consuming.
+
+From a git branch, run the following:
+
+git diff --name-only HEAD master | tr "\n" "," | xargs checker -p --path . --changes
+
+This is (nearly) the same command that should be run in CI (just omit the -p flag).
+`,
 	Run: func(cmd *cobra.Command, args []string) {
+
+		if val, ok := os.LookupEnv("CHECKER_WORKERS"); ok {
+			v, err := strconv.Atoi(val)
+			if err != nil {
+				log.Panicf("couldn't convert %s to an int: %v", val, err)
+			}
+			workers = v
+		}
+
+		if val, ok := os.LookupEnv("CHECKER_THROTTLE"); ok {
+			v, err := strconv.Atoi(val)
+			if err != nil {
+				log.Panicf("couldn't convert %s to an int: %v", val, err)
+			}
+			throttle = v
+		}
 
 		diagnostics := make([]string, 0)
 		diags := make(chan string)
@@ -241,9 +265,8 @@ all links are checked for validity.`,
 		doneChannel := make(chan struct{})
 
 		var wgValidate sync.WaitGroup
-		// default workers is 10. Need to read this in as an optional flag and environmental variable
-		wgValidate.Add(10)
-		for range [10]struct{}{} {
+		wgValidate.Add(workers)
+		for i := 0; i < workers; i++ {
 			go worker(&wgValidate, jobChannel, doneChannel)
 		}
 
@@ -294,14 +317,13 @@ func init() {
 
 	rootCmd.SetVersionTemplate("checker {{.Version}}\n")
 
-	rootCmd.PersistentFlags().StringVar(&path, "path", "", "path to the project")
-	if err := rootCmd.MarkPersistentFlagRequired("path"); err != nil {
-		log.Panic(err)
-	}
-	rootCmd.PersistentFlags().BoolVar(&refs, "refs", false, "check :refs:")
-	rootCmd.PersistentFlags().BoolVar(&docs, "docs", false, "check :docs:")
-	rootCmd.PersistentFlags().StringSliceVar(&changes, "changes", []string{}, "files to check")
-	rootCmd.PersistentFlags().BoolVar(&progress, "progress", false, "show progress bar")
+	rootCmd.PersistentFlags().StringVar(&path, "path", ".", "path to the project")
+	rootCmd.PersistentFlags().BoolVarP(&refs, "refs", "r", false, "check :refs:")
+	rootCmd.PersistentFlags().BoolVarP(&docs, "docs", "d", false, "check :docs:")
+	rootCmd.PersistentFlags().StringSliceVar(&changes, "changes", []string{}, "The list of files to check")
+	rootCmd.PersistentFlags().BoolVarP(&progress, "progress", "p", false, "show progress bar")
+	rootCmd.PersistentFlags().IntVarP(&workers, "workers", "w", 10, "The number of workers to spawn to do work.")
+	rootCmd.PersistentFlags().IntVarP(&throttle, "throttle", "t", 10, "The throttle factor. Each worker will process at most (1e9 / (throttle / workers)) jobs per second.")
 }
 
 func checkErr(err error) {
@@ -322,7 +344,7 @@ func contains(s []string, e string) bool {
 func worker(wg *sync.WaitGroup, jobChannel <-chan func(), doneChannel chan<- struct{}) {
 	defer wg.Done()
 	lastExecutionTime := time.Now()
-	minimumTimeBetweenEachExecution := time.Duration(math.Ceil(1e9 / (10 / float64(10))))
+	minimumTimeBetweenEachExecution := time.Duration(math.Ceil(1e9 / (float64(throttle) / float64(workers))))
 	for job := range jobChannel {
 		timeUntilNextExecution := -(time.Since(lastExecutionTime) - minimumTimeBetweenEachExecution)
 		if timeUntilNextExecution > 0 {

@@ -36,7 +36,7 @@ var (
 
 func init() {
 	client = &http.Client{
-		Timeout: time.Second * 4,
+		Timeout: time.Second * 5,
 	}
 }
 
