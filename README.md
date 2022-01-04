@@ -4,6 +4,12 @@
 
 Checker is a utility to help ensure documentation quality at MongoDB while reducing error prone, tedious tasks.
 
+## Install
+
+```sh
+go install github.com/terakilobyte/checker@latest
+```
+
 ## Use
 
 The intended use is to check links in changed files. This can be accomplished with:
