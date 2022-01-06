@@ -87,6 +87,10 @@ func IsHTTPLink(input string) bool {
 }
 
 func IsReachable(url string) (error, bool) {
+	// check to see if there's a way to avoid triggering page viewws
+	// block add blockers
+	// test net.DialTCP
+	// look at muffet to see what they do to make sure a url is valid
 
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("Connection", "Keep-Alive")

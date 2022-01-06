@@ -52,6 +52,7 @@ func GatherFiles(path string) []string {
 
 	files := make([]string, 0)
 
+	// TODO: make this passable as a flag with these defaults
 	exts := []string{".rst", ".txt", ".yml", ".yaml"}
 	validExt := func(s string) bool {
 		for _, ext := range exts {

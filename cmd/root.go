@@ -19,6 +19,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
+
+// TODO: refactor this into component/pipeline architecture
+
 package cmd
 
 import (
@@ -56,7 +59,7 @@ var (
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "checker",
-	Version: "0.1.3",
+	Version: "0.1.5",
 	Short:   "Checks links, and optionally :ref:s, :doc:s, and other :role:s in a docs project.",
 	Long: `Checker is a tool for checking links in a docs project.
 It will check refs against locally found refs and those found in intersphinx targets,
@@ -170,9 +173,11 @@ This is (nearly) the same command that should be run in CI (just omit the -p fla
 		}
 
 		for role, filename := range allRoleTargets {
-			if !contains(changes, filename) {
+
+			if !contains(changes, strings.TrimPrefix(filename, "/")) {
 				continue
 			}
+
 			switch role.Name {
 			case "guilabel":
 				break
