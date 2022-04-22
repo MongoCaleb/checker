@@ -13,8 +13,13 @@ func TestUrls(t *testing.T) {
 	}{{
 		url: "https://crates.io/crates/mongodb",
 		ok:  true,
-	},
-	}
+	}, {
+		url: "http://example.com",
+		ok:  true,
+	}, {
+		url: "https://pecl.php.net/package/mongodb",
+		ok:  true,
+	}}
 	for _, test := range cases {
 		t.Run(test.url, func(t *testing.T) {
 			err, ok := IsReachable(test.url)
