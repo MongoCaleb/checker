@@ -86,16 +86,18 @@ func IsHTTPLink(input string) bool {
 	return httpLinkRegex.MatchString(input)
 }
 
-func IsReachable(url string) (error, bool) {
+func IsReachable(uri string) (error, bool) {
 	// check to see if there's a way to avoid triggering page viewws
 	// block add blockers
 	// test net.DialTCP
 	// look at muffet to see what they do to make sure a url is valid
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", uri, nil)
 	req.Header.Set("Connection", "Keep-Alive")
 	req.Header.Set("Accept-Language", "en-US")
 	req.Header.Set("User-Agent", "Mozilla/5.0")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -113,6 +115,6 @@ func IsReachable(url string) (error, bool) {
 	if response.StatusCode == 200 {
 		return nil, true
 	} else {
-		return fmt.Errorf("%d", response.StatusCode), false
+		return fmt.Errorf("%s returned a status of %d", req.URL, response.StatusCode), false
 	}
 }
