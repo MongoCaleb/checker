@@ -7,7 +7,7 @@ Checker is a utility to help ensure documentation quality at MongoDB while reduc
 ## Install
 
 ```sh
-go install github.com/terakilobyte/checker@latest
+go install github.com/MongoCaleb/checker@latest
 ```
 
 ## Use

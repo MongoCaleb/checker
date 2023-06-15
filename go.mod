@@ -1,4 +1,4 @@
-module github.com/terakilobyte/checker
+module github.com/MongoCaleb/checker
 
 go 1.18
 

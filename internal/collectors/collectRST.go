@@ -6,8 +6,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/terakilobyte/checker/internal/parsers/rst"
-	"github.com/terakilobyte/checker/internal/sources"
+	"github.com/MongoCaleb/checker/internal/parsers/rst"
+	"github.com/MongoCaleb/checker/internal/sources"
 
 	iowrap "github.com/spf13/afero"
 

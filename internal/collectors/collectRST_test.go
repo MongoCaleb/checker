@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/terakilobyte/checker/internal/parsers/rst"
-	"github.com/terakilobyte/checker/internal/sources"
+	"github.com/MongoCaleb/checker/internal/parsers/rst"
+	"github.com/MongoCaleb/checker/internal/sources"
 
 	log "github.com/sirupsen/logrus"
 	iowrap "github.com/spf13/afero"

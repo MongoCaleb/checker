@@ -21,7 +21,7 @@ THE SOFTWARE.
 */
 package main
 
-import "github.com/terakilobyte/checker/cmd"
+import "github.com/MongoCaleb/checker/cmd"
 
 func main() {
 	cmd.Execute()

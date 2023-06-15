@@ -39,11 +39,11 @@ import (
 
 	"github.com/cheggaaa/pb/v3"
 	"github.com/spf13/cobra"
-	"github.com/terakilobyte/checker/internal/collectors"
-	"github.com/terakilobyte/checker/internal/parsers/intersphinx"
-	"github.com/terakilobyte/checker/internal/parsers/rst"
-	"github.com/terakilobyte/checker/internal/sources"
-	"github.com/terakilobyte/checker/internal/utils"
+	"github.com/MongoCaleb/checker/internal/collectors"
+	"github.com/MongoCaleb/checker/internal/parsers/intersphinx"
+	"github.com/MongoCaleb/checker/internal/parsers/rst"
+	"github.com/MongoCaleb/checker/internal/sources"
+	"github.com/MongoCaleb/checker/internal/utils"
 )
 
 var (
@@ -254,7 +254,7 @@ This is (nearly) the same command that should be run in CI (just omit the -p fla
 					return func() {
 						checkedUrls.Store(link, true)
 						if resp, ok := utils.IsReachable(string(link)); !ok {
-							errmsg := fmt.Sprintf("in %s: %s is not a valid http link. Got response %s", filename, link, resp)
+							errmsg := fmt.Sprintf("in %s: %s is not a valid http link.\nGot response %s", filename, link, resp)
 							diags <- errmsg
 						}
 					}
