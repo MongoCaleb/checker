@@ -37,13 +37,13 @@ import (
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/cheggaaa/pb/v3"
-	"github.com/spf13/cobra"
 	"github.com/MongoCaleb/checker/internal/collectors"
 	"github.com/MongoCaleb/checker/internal/parsers/intersphinx"
 	"github.com/MongoCaleb/checker/internal/parsers/rst"
 	"github.com/MongoCaleb/checker/internal/sources"
 	"github.com/MongoCaleb/checker/internal/utils"
+	"github.com/cheggaaa/pb/v3"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -323,12 +323,12 @@ func init() {
 	rootCmd.SetVersionTemplate("checker {{.Version}}\n")
 
 	rootCmd.PersistentFlags().StringVar(&path, "path", ".", "path to the project")
-	rootCmd.PersistentFlags().BoolVarP(&refs, "refs", "r", false, "check :refs:")
-	rootCmd.PersistentFlags().BoolVarP(&docs, "docs", "d", false, "check :docs:")
+	rootCmd.PersistentFlags().BoolVarP(&refs, "refs", "r", true, "check :refs:")
+	rootCmd.PersistentFlags().BoolVarP(&docs, "docs", "d", true, "check :docs:")
 	rootCmd.PersistentFlags().StringSliceVar(&changes, "changes", []string{}, "The list of files to check")
-	rootCmd.PersistentFlags().BoolVarP(&progress, "progress", "p", false, "show progress bar")
-	rootCmd.PersistentFlags().IntVarP(&workers, "workers", "w", 10, "The number of workers to spawn to do work.")
-	rootCmd.PersistentFlags().IntVarP(&throttle, "throttle", "t", 10, "The throttle factor. Each worker will process at most (1e9 / (throttle / workers)) jobs per second.")
+	rootCmd.PersistentFlags().BoolVarP(&progress, "progress", "p", true, "show progress bar")
+	rootCmd.PersistentFlags().IntVarP(&workers, "workers", "w", 100, "The number of workers to spawn to do work.")
+	rootCmd.PersistentFlags().IntVarP(&throttle, "throttle", "t", 100, "The throttle factor. Each worker will process at most (1e9 / (throttle / workers)) jobs per second.")
 }
 
 func checkErr(err error) {
