@@ -66,8 +66,9 @@ func init() {
 		DisableLevelTruncation: false,
 	})
 	client = &http.Client{
-		Timeout: time.Second * 5,
+		Timeout: time.Second * 30,
 	}
+
 	loadBypassList()
 }
 
@@ -88,6 +89,7 @@ func GetLatestSnootyParserTag() string {
 }
 
 func GetNetworkFile(input string) []byte {
+
 	req, err := http.NewRequest("GET", input, nil)
 	if err != nil {
 		log.Fatal(err)
@@ -143,6 +145,8 @@ func IsReachable(uri string) (error, bool) {
 			return err, false
 		}
 	}
+	defer response.Body.Close()
+
 	if response.StatusCode == 200 {
 		return nil, true
 	} else {

@@ -54,7 +54,7 @@ var (
 	progress   bool
 	workers    int
 	throttle   int
-	silent     bool
+	loglevel   int
 	bypassList []string
 )
 
@@ -264,7 +264,6 @@ This is (nearly) the same command that should be run in CI (just omit the -p fla
 					return func() {
 						checkedUrls.Store(link, true)
 						if resp, ok := utils.IsReachable(string(link)); !ok {
-							//resp == fmt.Errorf("%s [%d]", req.URL, response.StatusCode)
 							errmsg := fmt.Sprintf("%s | %s", filename, resp)
 							diags <- errmsg
 						}
@@ -290,8 +289,10 @@ This is (nearly) the same command that should be run in CI (just omit the -p fla
 		}
 
 		bar := pb.StartNew(len(workStack)).SetMaxWidth(120)
-		log.Info(fmt.Sprintf("Checking %d links", len(workStack)))
-		if progress && !silent {
+		if loglevel > 0 {
+			log.Info(fmt.Sprintf("Checking %d links", len(workStack)))
+		}
+		if progress && loglevel > 0 {
 			bar.SetWriter(os.Stdout)
 		} else {
 			bar.SetWriter(ioutil.Discard)
@@ -310,13 +311,15 @@ This is (nearly) the same command that should be run in CI (just omit the -p fla
 		wgValidate.Wait()
 		bar.Finish()
 		for _, msg := range diagnostics {
-			log.Error(msg)
+			if loglevel > 0 {
+				log.Error(msg)
+			}
 		}
 
 		if len(diagnostics) > 0 {
 			log.Fatal(len(diagnostics), " errors found.\n")
 		} else {
-			if !silent {
+			{
 				log.Info("No errors found.\n")
 			}
 		}
@@ -329,7 +332,6 @@ func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
-
 }
 
 func init() {
@@ -338,7 +340,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.SetVersionTemplate("checker {{.Version}}\n")
-	rootCmd.PersistentFlags().BoolVarP(&silent, "silent", "s", false, "only show results")
+	rootCmd.PersistentFlags().IntVarP(&loglevel, "loglevel", "l", 2, "0=silence all, 1=results only, 2=info and results")
 	rootCmd.PersistentFlags().StringVar(&path, "path", ".", "path to the project")
 	rootCmd.PersistentFlags().BoolVarP(&refs, "refs", "r", true, "check :refs:")
 	rootCmd.PersistentFlags().BoolVarP(&docs, "docs", "d", true, "check :docs:")
@@ -358,7 +360,7 @@ func isBlocked(input string) bool {
 		if !strings.Contains(input, a.Exclude) {
 			continue
 		} else {
-			if !silent {
+			if loglevel >= 2 {
 				log.Printf("Excluded: %s - Reason: %s %s", input, a.Exclude, a.Reason)
 			}
 			return true
