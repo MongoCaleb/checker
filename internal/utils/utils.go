@@ -34,6 +34,7 @@ var BypassList []string
 
 func loadBypassList() {
 	jsonFile, err := os.Open("./config/link_checker_bypass_list.json")
+	
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -42,7 +43,6 @@ func loadBypassList() {
 	byteValue, _ := ioutil.ReadAll(jsonFile)
 	var list []string
 	json.Unmarshal(byteValue, &list)
-	fmt.Print("*********", list)
 	for i := 0; i < len(list); i++ {
 		BypassList = append(BypassList, list[i])
 	}
