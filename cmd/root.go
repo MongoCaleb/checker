@@ -47,13 +47,14 @@ import (
 )
 
 var (
-	path     string
-	refs     bool
-	docs     bool
-	changes  []string
-	progress bool
-	workers  int
-	throttle int
+	path       string
+	refs       bool
+	docs       bool
+	changes    []string
+	progress   bool
+	workers    int
+	throttle   int
+	bypassList []string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -175,6 +176,7 @@ This is (nearly) the same command that should be run in CI (just omit the -p fla
 		for role, filename := range allRoleTargets {
 
 			if !contains(changes, strings.TrimPrefix(filename, "/")) {
+
 				continue
 			}
 
@@ -227,20 +229,29 @@ This is (nearly) the same command that should be run in CI (just omit the -p fla
 				}
 				workFunc := func(role rst.RstRole, filename string) func() {
 					url := fmt.Sprintf(rstSpecRoles.Roles[role.Name], role.Target)
+
 					if _, ok := checkedUrls.Load(url); !ok {
 						return func() {
 							checkedUrls.Store(url, true)
 							if resp, ok := utils.IsReachable(url); !ok {
-								errmsg := fmt.Sprintf("in %s: interpeted url %s from  %+v was not valid. Got response %s", filename, url, role, resp)
+								errmsg := fmt.Sprintf("in %s: interpreted url %s from  %+v was not valid. Got response %s", filename, url, role, resp)
 								diags <- errmsg
 							}
 						}
 					} else {
 						return func() {}
-
 					}
+
 				}
-				workStack = append(workStack, workFunc(role, filename))
+
+				i := isBlocked(role.Target)
+				if !i {
+
+					workStack = append(workStack, workFunc(role, filename))
+					//log.Info(len(workStack))
+				} else {
+					log.Error("roletarget_excluded: ", role.Target)
+				}
 			}
 		}
 
@@ -254,7 +265,8 @@ This is (nearly) the same command that should be run in CI (just omit the -p fla
 					return func() {
 						checkedUrls.Store(link, true)
 						if resp, ok := utils.IsReachable(string(link)); !ok {
-							errmsg := fmt.Sprintf("in %s: %s is not a valid http link.\nGot response %s", filename, link, resp)
+							//resp == fmt.Errorf("%s [%d]", req.URL, response.StatusCode)
+							errmsg := fmt.Sprintf("%s | %s", filename, resp)
 							diags <- errmsg
 						}
 					}
@@ -263,7 +275,10 @@ This is (nearly) the same command that should be run in CI (just omit the -p fla
 				}
 			}
 
-			workStack = append(workStack, workFunc(link, filename))
+			i := isBlocked(string(link))
+			if !i {
+				workStack = append(workStack, workFunc(link, filename))
+			}
 		}
 
 		jobChannel := make(chan func())
@@ -275,6 +290,7 @@ This is (nearly) the same command that should be run in CI (just omit the -p fla
 			go worker(&wgValidate, jobChannel, doneChannel)
 		}
 
+		//log.Error(len(workStack))
 		bar := pb.StartNew(len(workStack)).SetMaxWidth(120)
 		if progress {
 			bar.SetWriter(os.Stdout)
@@ -336,9 +352,22 @@ func checkErr(err error) {
 		log.Panic(err)
 	}
 }
+func isBlocked(input string) bool {
+
+	for _, a := range utils.BypassList {
+		if !strings.Contains(input, a) {
+			continue
+		} else {
+			log.Info(input, " is excluded")
+			return true
+		}
+	}
+	return false
+}
 
 func contains(s []string, e string) bool {
 	for _, a := range s {
+
 		if strings.Contains(a, e) {
 			return true
 		}

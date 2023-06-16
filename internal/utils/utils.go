@@ -2,9 +2,11 @@ package utils
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -28,6 +30,24 @@ func (v validRedirects) contains(i int) bool {
 	return false
 }
 
+var BypassList []string
+
+func loadBypassList() {
+	jsonFile, err := os.Open("./config/link_checker_bypass_list.json")
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer jsonFile.Close()
+
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	var list []string
+	json.Unmarshal(byteValue, &list)
+	fmt.Print("*********", list)
+	for i := 0; i < len(list); i++ {
+		BypassList = append(BypassList, list[i])
+	}
+}
+
 var (
 	httpLinkRegex = regexp.MustCompile(`(https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
 	client        *http.Client
@@ -35,9 +55,14 @@ var (
 )
 
 func init() {
+	log.SetFormatter(&log.TextFormatter{
+		PadLevelText:           true,
+		DisableLevelTruncation: false,
+	})
 	client = &http.Client{
 		Timeout: time.Second * 5,
 	}
+	loadBypassList()
 }
 
 func GetLatestSnootyParserTag() string {
@@ -115,6 +140,6 @@ func IsReachable(uri string) (error, bool) {
 	if response.StatusCode == 200 {
 		return nil, true
 	} else {
-		return fmt.Errorf("%s returned a status of %d", req.URL, response.StatusCode), false
+		return fmt.Errorf("%s | [%d]", req.URL, response.StatusCode), false
 	}
 }
