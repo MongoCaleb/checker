@@ -30,19 +30,25 @@ func (v validRedirects) contains(i int) bool {
 	return false
 }
 
-var BypassList []string
+type bypassJson struct {
+	Exclude string `json:"exclude"`
+	Reason  string `json:"reason"`
+}
+
+var BypassList []bypassJson
 
 func loadBypassList() {
 	jsonFile, err := os.Open("./config/link_checker_bypass_list.json")
-	
+
 	if err != nil {
 		fmt.Println(err)
 	}
 	defer jsonFile.Close()
 
 	byteValue, _ := ioutil.ReadAll(jsonFile)
-	var list []string
+	var list []bypassJson
 	json.Unmarshal(byteValue, &list)
+
 	for i := 0; i < len(list); i++ {
 		BypassList = append(BypassList, list[i])
 	}

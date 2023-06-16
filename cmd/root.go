@@ -54,6 +54,7 @@ var (
 	progress   bool
 	workers    int
 	throttle   int
+	silent     bool
 	bypassList []string
 )
 
@@ -246,9 +247,7 @@ This is (nearly) the same command that should be run in CI (just omit the -p fla
 
 				i := isBlocked(role.Target)
 				if !i {
-
 					workStack = append(workStack, workFunc(role, filename))
-					//log.Info(len(workStack))
 				} else {
 					log.Error("roletarget_excluded: ", role.Target)
 				}
@@ -290,9 +289,9 @@ This is (nearly) the same command that should be run in CI (just omit the -p fla
 			go worker(&wgValidate, jobChannel, doneChannel)
 		}
 
-		//log.Error(len(workStack))
 		bar := pb.StartNew(len(workStack)).SetMaxWidth(120)
-		if progress {
+		log.Info(fmt.Sprintf("Checking %d links", len(workStack)))
+		if progress && !silent {
 			bar.SetWriter(os.Stdout)
 		} else {
 			bar.SetWriter(ioutil.Discard)
@@ -317,7 +316,9 @@ This is (nearly) the same command that should be run in CI (just omit the -p fla
 		if len(diagnostics) > 0 {
 			log.Fatal(len(diagnostics), " errors found.\n")
 		} else {
-			log.Info("No errors found.\n")
+			if !silent {
+				log.Info("No errors found.\n")
+			}
 		}
 	},
 }
@@ -337,7 +338,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.SetVersionTemplate("checker {{.Version}}\n")
-
+	rootCmd.PersistentFlags().BoolVarP(&silent, "silent", "s", false, "only show results")
 	rootCmd.PersistentFlags().StringVar(&path, "path", ".", "path to the project")
 	rootCmd.PersistentFlags().BoolVarP(&refs, "refs", "r", true, "check :refs:")
 	rootCmd.PersistentFlags().BoolVarP(&docs, "docs", "d", true, "check :docs:")
@@ -353,12 +354,13 @@ func checkErr(err error) {
 	}
 }
 func isBlocked(input string) bool {
-
 	for _, a := range utils.BypassList {
-		if !strings.Contains(input, a) {
+		if !strings.Contains(input, a.Exclude) {
 			continue
 		} else {
-			log.Info(input, " is excluded")
+			if !silent {
+				log.Printf("Excluded: %s - Reason: %s %s", input, a.Exclude, a.Reason)
+			}
 			return true
 		}
 	}
