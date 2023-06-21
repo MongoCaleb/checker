@@ -1,8 +1,11 @@
-# Checker
+# Docs Link Checker
 
 ## Overview
 
-Checker is a utility to help ensure documentation quality at MongoDB while reducing error prone, tedious tasks.
+Checker is designed to quickly check hyperlinks, :ref: directives, and :doc: 
+directives to ensure they are valid. Based on Nathan Leniz's [tool of the same 
+name](https://github.com/terakilobyte/checker), this fork improves performance, 
+adds the ability to exclude specific URLS, and changes the default values.
 
 ## Install
 
@@ -12,23 +15,54 @@ go install github.com/MongoCaleb/checker@latest
 
 ## Use
 
-The intended use is to check links in changed files. This can be accomplished with:
+There are two ways to use checker. This first is to run it against the entire 
+docset. With multithreading, this process takes a matter of seconds. To do this, 
+simply navigate to the root directory of your docs repo and run ``checker``. 
+
+You can also configure the tool to only check files changed in the current 
+diff. This can be accomplished with:
 
 ```sh
-git diff --name-only HEAD master | tr "\n" "," | xargs checker -p --path . --changes
+git diff --name-only | tr "\n" "," | xargs checker  --changes
 ```
 
-The above commands first get the list of file names with changes by comparing your current branch to master,
-then converts that into a comma separated list, lastly passing the list to the program via `xargs`.
-
-You can also check _all_ links by omitting the `--changes` flag, though this can take a very long time depending
-on the size of the project.
+**NOTE:** To check recent files, be sure to run this before adding the files to 
+the current commit (before running ``git add``.)
 
 See the `--help` flag for more info.
 
 ```sh
 checker --help
 ```
+
+## Excluding links
+
+There are times when you may want to not check URLs. For example, if your docset 
+has examples that use fake URLs, you want to make sure those URLs are ignored. 
+One common example is to exclude checking http://example.com URLs.
+
+To exclude URLS, create the following file:
+``./config/link_checker_bypass_list.json``
+
+In this file, add the URLs to be excluded and the reason for the exclusion in the 
+following format:
+
+```
+[
+    {
+        "exclude":"example.com",
+        "reason":"is not real url"
+    },
+    {
+        "exclude":"api/client/v2.0",
+        "reason":"will always return 400"
+    }
+]
+```
+
+## Running as a Github Action.
+
+TBD. See https://github.com/actions/setup-go.
 
 ## What it does
 
@@ -42,10 +76,3 @@ following ways:
 - It will optionally check uses of `:doc:` and `:ref:` targets. **Note**: checker DOES NOT ignore rst comments. Use the
   optional `-d` and `-r` flags to check for `:doc:` and `:ref:` targets, respectively.
 
-## How it does it
-
-Once it scans files for checkable items, it begins checking them. URL checing is performed in a pool of workers
-(default 10), configurable with the `-w` flag. Each worker is throttled (default 10), configurable with the `-t` flag, so that no
-worker can issue more than (1e9 / (throttle / workers)) requests per second. **Setting this value too high can result in
-inadvertent DOS attacks.**. `:ref:` targets are only checked for existence, since the URL is guaranteed to be accurate based
-on the way they are generated. `:doc:` targets check whether the target is in the list of scanned files.

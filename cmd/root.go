@@ -63,20 +63,7 @@ var rootCmd = &cobra.Command{
 	Use:     "checker",
 	Version: "0.1.5",
 	Short:   "Checks links, and optionally :ref:s, :doc:s, and other :role:s in a docs project.",
-	Long: `Checker is a tool for checking links in a docs project.
-It will check refs against locally found refs and those found in intersphinx targets,
-and checks roles against the latest RELEASE of rstspec.toml. Once they are validated,
-all links are checked for validity.
 
-This is mostly intended to be run on changed files only, as checking all of the links in a project
-can be very time consuming.
-
-From a git branch, run the following:
-
-git diff --name-only HEAD master | tr "\n" "," | xargs checker -p --path . --changes
-
-This is (nearly) the same command that should be run in CI (just omit the -p flag).
-`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if val, ok := os.LookupEnv("CHECKER_WORKERS"); ok {
