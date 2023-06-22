@@ -15,12 +15,18 @@ go install github.com/MongoCaleb/checker@latest
 
 ## Use
 
-There are two ways to use checker. This first is to run it against the entire 
-docset. With multithreading, this process takes a matter of seconds. To do this, 
-simply navigate to the root directory of your docs repo and run ``checker``. 
+There are several ways to use checker. 
 
-You can also configure the tool to only check files changed in the current 
-diff. This can be accomplished with:
+1. Run it against the entire 
+docset. With multithreading and reasonable internet connectivity, this process takes a matter of seconds. To do this, simply navigate to the root directory of your docs repo and run ``checker``. 
+
+2. Check a specific file or files by using the ``--changes`` flag. Multiple files are comma-delimited with **no spaces**:
+
+```sh
+checker --changes /examples/foo.yaml,/source/bar.txt
+```
+
+3. Check files that have changed in the current diff. This can be accomplished with:
 
 ```sh
 git diff --name-only | tr "\n" "," | xargs checker  --changes

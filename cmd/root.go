@@ -242,7 +242,6 @@ var rootCmd = &cobra.Command{
 		}
 
 		for link, filename := range allHTTPLinks {
-
 			if !contains(changes, strings.TrimPrefix(filename, "/")) {
 				continue
 			}
