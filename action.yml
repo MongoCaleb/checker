@@ -10,4 +10,4 @@ runs:
   using: 'composite'
   steps:
     - shell: bash
-      run: go run .
+      run: "go build -v ./main.go && go run ./main.go"
