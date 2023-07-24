@@ -10,4 +10,4 @@ runs:
   using: 'composite'
   steps:
     - shell: bash
-      run: go build -v "${{github.action_path}}"/main.go && go run ${{github.action_path}}/main.go
+      run: go build -v ${{github.action_path}}/main.go && go run ${{github.action_path}}/main.go
