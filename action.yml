@@ -10,4 +10,5 @@ runs:
   using: 'composite'
   steps:
     - shell: bash
-      run: go build -v ${{github.action_path}}/main.go && go run ${{github.action_path}}/main.go
+      run: cd "${{github.action_path}}" && go build -v ./main.go && go run ./main.go --path ${{github.workflow}}
+      
