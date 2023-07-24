@@ -10,4 +10,4 @@ runs:
   using: 'composite'
   steps:
     - shell: bash
-      run: go run ./... 
+      run: go run .
