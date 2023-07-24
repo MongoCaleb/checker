@@ -1,30 +1,7 @@
-/*
-Copyright © 2021 Nathan Leniz <terakilobyte@gmail.com>
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in
-all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-THE SOFTWARE.
-*/
-
-// TODO: refactor this into component/pipeline architecture
-
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -47,16 +24,39 @@ import (
 )
 
 var (
-	path       string
-	refs       bool
-	docs       bool
-	changes    []string
-	progress   bool
-	workers    int
-	throttle   int
-	loglevel   int
-	bypassList []string
+	path     string
+	refs     bool
+	docs     bool
+	changes  []string
+	progress bool
+	workers  int
+	throttle int
+	loglevel int
 )
+
+type bypassJson struct {
+	Exclude string `json:"exclude"`
+	Reason  string `json:"reason"`
+}
+
+var BypassList []bypassJson
+
+func loadBypassList(bypassPath string) {
+	jsonFile, err := os.Open(bypassPath + "/config/link_checker_bypass_list.json")
+
+	if err != nil {
+		fmt.Println(err)
+	}
+	defer jsonFile.Close()
+
+	byteValue, _ := ioutil.ReadAll(jsonFile)
+	var list []bypassJson
+	json.Unmarshal(byteValue, &list)
+
+	for i := 0; i < len(list); i++ {
+		BypassList = append(BypassList, list[i])
+	}
+}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -95,6 +95,7 @@ var rootCmd = &cobra.Command{
 			file   []byte
 		}
 
+		loadBypassList(path)
 		basepath, err := filepath.Abs(path)
 		checkErr(err)
 		snootyToml := utils.GetLocalFile(filepath.Join(basepath, "snooty.toml"))
@@ -324,7 +325,6 @@ func init() {
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
-
 	rootCmd.SetVersionTemplate("checker {{.Version}}\n")
 	rootCmd.PersistentFlags().IntVarP(&loglevel, "loglevel", "l", 2, "0=silence all, 1=results only, 2=info and results")
 	rootCmd.PersistentFlags().StringVar(&path, "path", ".", "path to the project")
@@ -342,7 +342,7 @@ func checkErr(err error) {
 	}
 }
 func isBlocked(input string) bool {
-	for _, a := range utils.BypassList {
+	for _, a := range BypassList {
 		if !strings.Contains(input, a.Exclude) {
 			continue
 		} else {
