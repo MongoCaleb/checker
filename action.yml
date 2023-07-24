@@ -1,0 +1,13 @@
+---
+name: Check For Broken Links
+author: Caleb Thompson (@mongocaleb)
+description: 'Checks all links to make sure they are valid.'
+branding:
+  icon: 'check-square'
+  color: 'white'
+
+runs:
+  using: 'composite'
+  steps:
+    - shell: bash
+      run: go run ./... 
