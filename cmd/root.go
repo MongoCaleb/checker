@@ -279,7 +279,8 @@ var rootCmd = &cobra.Command{
 		if loglevel > 0 {
 			log.Info(fmt.Sprintf("Checking %d links", len(workStack)))
 		}
-		if progress && loglevel > 0 {
+		if progress && loglevel > 1 {
+			log.Info(progress)
 			bar.SetWriter(os.Stdout)
 		} else {
 			bar.SetWriter(ioutil.Discard)
