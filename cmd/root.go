@@ -98,7 +98,7 @@ var rootCmd = &cobra.Command{
 		loadBypassList(path)
 		basepath, err := filepath.Abs(path)
 		checkErr(err)
-		snootyToml := utils.GetLocalFile(filepath.Join(basepath, "snooty.toml"))
+		snootyToml := utils.GetLocalFile(filepath.Join(path, "snooty.toml"))
 		projectSnooty, err := sources.NewTomlConfig(snootyToml)
 		checkErr(err)
 		intersphinxes := make([]intersphinx.SphinxMap, len(projectSnooty.Intersphinx))
