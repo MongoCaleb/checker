@@ -13,4 +13,4 @@ runs:
       run: |
         cd "${{github.action_path}}" 
         go build -v ./main.go 
-        go run ./... --path {{github.workspace}}
+        go run ./... --path ${{github.workspace}}
