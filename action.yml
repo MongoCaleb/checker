@@ -13,6 +13,6 @@ runs:
       run: |
         cd "${{github.action_path}}" 
         go build -v ./main.go 
-        cd "${{github.workflow}}"
+        cd "${{github.workspace}}"
         run ${{github.action_path}}/main.go
       
