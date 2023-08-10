@@ -148,7 +148,8 @@ var rootCmd = &cobra.Command{
 			if _, ok := projectSnooty.Constants[con.Name]; !ok {
 				diags <- fmt.Sprintf("%s is not defined in config", con)
 			}
-			testCon := rst.RstConstant{Name: con.Name, Target: projectSnooty.Constants[filename] + con.Name}
+			testCon := rst.RstConstant{Name: con.Name, Target: projectSnooty.Constants[con.Name] + con.Target}
+
 			if testCon.IsHTTPLink() {
 				allHTTPLinks[rst.RstHTTPLink(testCon.Target)] = filename
 			}
