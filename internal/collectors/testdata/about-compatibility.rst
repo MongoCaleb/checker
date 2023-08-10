@@ -1,12 +1,8 @@
-
 We include compatibility tables for each version of the driver to guide
 your decisions on what versions you need to ensure your environment
 remains fully operational.
 
 We maintain the following tables for each driver:
-
-- :ref:`About MongoDB compatibility <mongodb-compatibility-table-about-{+driver+}>`
-- :ref:`About language compatibility <language-compatibility-table-about-{+driver+}>`
 
 Read the sections below for detailed explanations of each table.
 
