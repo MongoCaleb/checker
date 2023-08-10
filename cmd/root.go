@@ -61,7 +61,7 @@ func loadBypassList(bypassPath string) {
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "checker",
-	Version: "0.1.5",
+	Version: "0.2.0",
 	Short:   "Checks links, and optionally :ref:s, :doc:s, and other :role:s in a docs project.",
 
 	Run: func(cmd *cobra.Command, args []string) {
