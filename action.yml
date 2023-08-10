@@ -13,4 +13,4 @@ runs:
       run: |
         cd "${{github.action_path}}" 
         go build -v ./main.go 
-        go run ./... --loglevel 1 --progress=false --path ${{github.workspace}}
+        go run ./... --loglevel 3 --progress=false --path ${{github.workspace}}
