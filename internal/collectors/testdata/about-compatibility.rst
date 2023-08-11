@@ -49,3 +49,9 @@ labeled with major release versions of the driver.
 
 The check marks (✓) indicate that the code in the driver is fully
 compatible with the version of the language.
+
+.. testing the ignore file
+
+To watch a collection for changes, you must first install the
+:npm:`react-native-polyfill-globals <package/this-is-a-bad-link/>`
+package.
