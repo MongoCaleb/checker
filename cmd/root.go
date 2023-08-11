@@ -7,6 +7,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -24,14 +25,15 @@ import (
 )
 
 var (
-	path     string
-	refs     bool
-	docs     bool
-	changes  []string
-	progress bool
-	workers  int
-	throttle int
-	loglevel int
+	path      string
+	refs      bool
+	docs      bool
+	changes   []string
+	progress  bool
+	workers   int
+	throttle  int
+	loglevel  int
+	LogOutput []utils.HttpResponse
 )
 
 type bypassJson struct {
@@ -82,8 +84,8 @@ var rootCmd = &cobra.Command{
 			throttle = v
 		}
 
-		diagnostics := make([]string, 0)
-		diags := make(chan string)
+		diagnostics := LogOutput
+		diags := make(chan utils.HttpResponse)
 		go func() {
 			for d := range diags {
 				diagnostics = append(diagnostics, d)
@@ -146,7 +148,10 @@ var rootCmd = &cobra.Command{
 
 		for con, filename := range allConstants {
 			if _, ok := projectSnooty.Constants[con.Name]; !ok {
-				diags <- fmt.Sprintf("%s is not defined in config", con)
+				var re utils.HttpResponse
+				re.Code = -1
+				re.Message = fmt.Sprintf("%s is not defined in config", con)
+				diags <- re
 			}
 			testCon := rst.RstConstant{Name: con.Name, Target: projectSnooty.Constants[con.Name] + con.Target}
 			if !isBlocked(testCon.Target) && testCon.IsHTTPLink() {
@@ -173,7 +178,10 @@ var rootCmd = &cobra.Command{
 				if refs {
 					if _, ok := sphinxMap[role.Target]; !ok {
 						if _, ok := allLocalRefs.Get(&role); !ok {
-							diags <- fmt.Sprintf("in %s: %+v is not a valid ref", filename, role)
+							var re utils.HttpResponse
+							re.Code = -1
+							re.Filename = filename
+							re.Message = fmt.Sprintf("%+v is not a valid ref", role)
 						}
 					}
 					break
@@ -181,7 +189,10 @@ var rootCmd = &cobra.Command{
 			case "doc":
 				if docs {
 					if !contains(files, filename) {
-						diags <- fmt.Sprintf("in %s: %s is not a valid file found in this docset", filename, role)
+						var re utils.HttpResponse
+						re.Code = -1
+						re.Filename = filename
+						re.Message = fmt.Sprintf("%s is not a valid file found in this docset", role)
 					}
 					break
 				}
@@ -190,7 +201,10 @@ var rootCmd = &cobra.Command{
 				if refs {
 					if _, ok := sphinxMap[role.Target]; !ok {
 						if _, ok := allLocalRefs.Get(&role); !ok {
-							diags <- fmt.Sprintf("in %s: %+v is not a valid ref", filename, role)
+							var re utils.HttpResponse
+							re.Code = -1
+							re.Filename = filename
+							re.Message = fmt.Sprintf("%+v is not a valid ref", role)
 						}
 					}
 					break
@@ -199,7 +213,10 @@ var rootCmd = &cobra.Command{
 				if refs {
 					if _, ok := sphinxMap[role.Target]; !ok {
 						if _, ok := allLocalRefs.Get(&role); !ok {
-							diags <- fmt.Sprintf("in %s: %+v is not a valid ref", filename, role)
+							var re utils.HttpResponse
+							re.Code = -1
+							re.Filename = filename
+							re.Message = fmt.Sprintf("%+v is not a valid ref", role)
 						}
 					}
 					break
@@ -211,7 +228,10 @@ var rootCmd = &cobra.Command{
 				if _, ok := rstSpecRoles.Roles[role.Name]; !ok {
 					if _, ok := rstSpecRoles.RawRoles[role.Name]; !ok {
 						if _, ok := rstSpecRoles.RstObjects[role.Name]; !ok {
-							diags <- fmt.Sprintf("in %s: %s is not a valid role", filename, role)
+							var re utils.HttpResponse
+							re.Code = -1
+							re.Filename = filename
+							re.Message = fmt.Sprintf(" %s is not a valid role", role)
 						}
 					}
 					break
@@ -223,8 +243,11 @@ var rootCmd = &cobra.Command{
 						return func() {
 							checkedUrls.Store(url, true)
 							if resp, ok := utils.IsReachable(url); !ok {
-								errmsg := fmt.Sprintf("in %s: interpreted url %s from  %+v was not valid. Got response %s", filename, url, role, resp)
-								diags <- errmsg
+								var re utils.HttpResponse
+								re.Code = resp.Code
+								re.Filename = filename
+								re.Message = fmt.Sprintf("%+v", url)
+								diags <- re
 							}
 						}
 					} else {
@@ -242,6 +265,7 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
+		//At this point, we have all links to check
 		for link, filename := range allHTTPLinks {
 			if !contains(changes, strings.TrimPrefix(filename, "/")) {
 				continue
@@ -251,8 +275,11 @@ var rootCmd = &cobra.Command{
 					return func() {
 						checkedUrls.Store(link, true)
 						if resp, ok := utils.IsReachable(string(link)); !ok {
-							errmsg := fmt.Sprintf("%s | %s", filename, resp)
-							diags <- errmsg
+							var re utils.HttpResponse
+							re.Code = resp.Code
+							re.Filename = filename
+							re.Message = fmt.Sprintf("%s", link)
+							diags <- re
 						}
 					}
 				} else {
@@ -298,14 +325,21 @@ var rootCmd = &cobra.Command{
 		close(jobChannel)
 		wgValidate.Wait()
 		bar.Finish()
-		for _, msg := range diagnostics {
-			if loglevel > 0 {
-				log.Error(msg)
-			}
-		}
 
 		if len(diagnostics) > 0 {
-			log.Fatal(len(diagnostics), " errors found.\n")
+			if len(diagnostics) > 1 {
+				log.Error(len(diagnostics), " errors found.\n")
+			} else {
+				log.Error("1 error found.\n")
+			}
+			sort.Slice(diagnostics, func(i, j int) bool {
+				return diagnostics[i].Code < diagnostics[j].Code
+			})
+			for _, msg := range diagnostics {
+				if loglevel > 0 {
+					log.Error(fmt.Sprintf("\n\r[%d]\n\r%s\n\rSource file: %s", msg.Code, msg.Message, msg.Filename))
+				}
+			}
 		} else {
 			{
 				log.Info("No errors found.\n")

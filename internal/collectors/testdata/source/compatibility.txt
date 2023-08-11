@@ -1,0 +1,23 @@
+.. contents:: On this page
+   :local:
+   :backlinks: none
+   :depth: 2
+   :class: singlecol
+
+=============
+Compatibility
+=============
+
+MongoDB Compatibility
+---------------------
+
+
+.. include:: /includes/mongodb-compatibility-table-node.rst
+
+Language Compatibility
+----------------------
+
+.. include:: /includes/language-compatibility-table-node.rst
+
+About Compatibility Tables
+--------------------------
