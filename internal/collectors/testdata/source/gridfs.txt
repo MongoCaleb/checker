@@ -1,0 +1,112 @@
+======
+GridFS
+======
+
+.. default-domain:: mongodb
+
+.. contents:: On this page
+   :local:
+   :backlinks: none
+   :depth: 2
+   :class: singlecol
+
+Overview
+--------
+To adjust specific configuration settings, use the options provided by
+`SyncConfiguration.Builder
+<{+kotlin-sync-prefix+}/io.realm.kotlin.mongodb.sync/-sync-configuration/-builder/index.html>`__
+
+see the :manual:`GridFS server manual page </core/gridfs>`.
+
+Navigate the following sections to learn more about GridFS operations
+and implementation:
+
+- :ref:`Create a GridFS Bucket <gridfs-create-bucket>`
+- :ref:`Upload Files <gridfs-upload-files>`
+- :ref:`Retrieve File Information <gridfs-retrieve-file-info>`
+- :ref:`Download Files <gridfs-download-files>`
+- :ref:`Rename Files <gridfs-rename-files>`
+- :ref:`Delete Files <gridfs-delete-files>`
+- :ref:`Delete a GridFS Bucket <gridfs-delete-bucket>`
+
+How GridFS Works
+----------------
+
+GridFS organizes files in a **bucket**, a group of MongoDB collections
+that contain the chunks of files and descriptive information.
+Buckets contain the following collections, named using the convention
+defined in the GridFS specification:
+
+- The ``chunks`` collection stores the binary file chunks.
+- The ``files`` collection stores the file metadata.
+
+:manual:`GridFS Indexes </core/gridfs/#gridfs-indexes>`.
+
+
+.. _gridfs-create-bucket:
+
+Create a GridFS Bucket
+----------------------
+
+
+
+
+For more information, see the `GridFSBucket API documentation <{+api+}T_MongoDB_Driver_GeoHaystackSearchResult_GeoHaystackSearchStats.htm>`__.
+
+.. _gridfs-upload-files:
+
+Upload Files
+------------
+
+
+See the `openUploadStream() API documentation <{+api+}T_MongoDB_Driver_GeoHaystackSearchResult_GeoHaystackSearchStats.htm>`__ for more information.
+
+.. _gridfs-retrieve-file-info:
+
+
+
+- `find() API documentation <{+api+}T_MongoDB_Driver_GeoHaystackSearchResult_GeoHaystackSearchStats.htm>`__
+- `FindCursor API documentation <{+api+}T_MongoDB_Driver_GeoHaystackSearchResult_GeoHaystackSearchStats.htm#PageHeader>`__
+- :doc:`Cursor Fundamentals page </fundamentals/crud/read-operations/cursor>`
+- :doc:`Read Operations page </fundamentals/crud/read-operations/>`
+
+.. _gridfs-download-files:
+
+
+
+For more information on the ``openDownloadStreamByName()`` method, see
+its `API documentation <{+api+}T_MongoDB_Driver_GeoHaystackSearchResult_GeoHaystackSearchStats.htm#PageHeader>`__.
+
+.. _gridfs-rename-files:
+
+
+For more information on this method, see the :node-api-4.0:`rename() API
+documentation <classes/gridfsbucket.html#rename>`.
+
+.. _gridfs-delete-files:
+
+Delete Files
+------------
+
+For more information on this method, see the :node-api-4.0:`delete() API
+documentation <classes/gridfsbucket.html#delete>`.
+
+.. _gridfs-delete-bucket:
+
+:node-api-4.0:`drop() API
+documentation </classes/gridfsbucket.html#drop>`.
+
+Additional Resources
+--------------------
+
+- `MongoDB GridFS specification <https://mongodb.com/404>`__
+- `Runnable example <https://mongodb.github.io/node-mongodb-native/3.6/tutorials/gridfs/streaming/>`__
+  from the Node driver version 3.6 documentation
+
+
+To watch a collection for changes, you must first install the
+:npm:`react-native-polyfill-globals <package/this-is-a-bad-link/>`
+package.
+
+Don't forget to check this :npm:`@realm/react <package/@realm/react>` 
+is an npm package.

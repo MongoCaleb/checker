@@ -2,7 +2,6 @@ package utils
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"regexp"
@@ -17,6 +16,12 @@ const (
 	rstSpecBase = "https://raw.githubusercontent.com/mongodb/snooty-parser/"
 )
 
+type HttpResponse struct {
+	Code     int
+	Filename string
+	Message  string
+}
+
 type validRedirects [7]int
 
 func (v validRedirects) contains(i int) bool {
@@ -27,8 +32,6 @@ func (v validRedirects) contains(i int) bool {
 	}
 	return false
 }
-
-
 
 var (
 	httpLinkRegex = regexp.MustCompile(`(https?:\/\/[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9]{1,6}\b[-a-zA-Z0-9@:%_\+.~#?&//=]*)`)
@@ -93,11 +96,13 @@ func IsHTTPLink(input string) bool {
 	return httpLinkRegex.MatchString(input)
 }
 
-func IsReachable(uri string) (error, bool) {
+func IsReachable(uri string) (HttpResponse, bool) {
 	// check to see if there's a way to avoid triggering page viewws
 	// block add blockers
 	// test net.DialTCP
 	// look at muffet to see what they do to make sure a url is valid
+
+	var r HttpResponse
 
 	req, err := http.NewRequest("GET", uri, nil)
 	req.Header.Set("Connection", "Keep-Alive")
@@ -111,19 +116,26 @@ func IsReachable(uri string) (error, bool) {
 	response, err := client.Do(req)
 
 	if err != nil {
+		var code int
+		if response != nil {
+			code = response.StatusCode
+		}
 		if strings.Contains(err.Error(), "stopped after 10 redirects") {
-			if redirects.contains(response.StatusCode) {
-				return nil, true
+			if redirects.contains(code) {
+				return r, true
 			}
 		} else {
-			return err, false
+			r.Code = code
+			return r, false
 		}
 	}
 	defer response.Body.Close()
 
 	if response.StatusCode == 200 {
-		return nil, true
+		return r, true
 	} else {
-		return fmt.Errorf("%s | [%d]", req.URL, response.StatusCode), false
+		r.Code = response.StatusCode
+		r.Message = req.URL.Path
+		return r, false
 	}
 }
