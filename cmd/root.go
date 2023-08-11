@@ -149,8 +149,7 @@ var rootCmd = &cobra.Command{
 				diags <- fmt.Sprintf("%s is not defined in config", con)
 			}
 			testCon := rst.RstConstant{Name: con.Name, Target: projectSnooty.Constants[con.Name] + con.Target}
-
-			if testCon.IsHTTPLink() {
+			if !isBlocked(testCon.Target) && testCon.IsHTTPLink() {
 				allHTTPLinks[rst.RstHTTPLink(testCon.Target)] = filename
 			}
 		}
@@ -162,11 +161,8 @@ var rootCmd = &cobra.Command{
 		if len(changes) == 0 {
 			changes = files
 		}
-
 		for role, filename := range allRoleTargets {
-
 			if !contains(changes, strings.TrimPrefix(filename, "/")) {
-
 				continue
 			}
 
@@ -209,6 +205,9 @@ var rootCmd = &cobra.Command{
 					break
 				}
 			default:
+				if isBlocked(rstSpecRoles.Roles[role.Name]) {
+					break
+				}
 				if _, ok := rstSpecRoles.Roles[role.Name]; !ok {
 					if _, ok := rstSpecRoles.RawRoles[role.Name]; !ok {
 						if _, ok := rstSpecRoles.RstObjects[role.Name]; !ok {

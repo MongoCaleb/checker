@@ -1,0 +1,6 @@
+[
+{
+        "exclude":"npm",
+        "reason":"always returns a 429 -- \"Too many requests\"."
+    }
+]
